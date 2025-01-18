@@ -17,7 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class StatisticServiceImpl implements StatisticService {
@@ -232,7 +235,7 @@ public class StatisticServiceImpl implements StatisticService {
         String stockTicker = stockRepository.findStockTickerByStockId(stockId);
         BigDecimal totalUnits = transactions.stream().map(transaction -> {
             BigDecimal units = new BigDecimal(transaction.getUnits());
-            return Objects.equals(transaction.getTransactionType().trim(), "Buy") ? units : units.negate();
+            return "Buy".equalsIgnoreCase(transaction.getTransactionType().trim()) ? units : units.negate();
         }).reduce(BigDecimal.ZERO, BigDecimal::add);
         LOGGER.info("Total Units for {}: {}", stockTicker, totalUnits);
         return totalUnits;
@@ -244,83 +247,82 @@ public class StatisticServiceImpl implements StatisticService {
         LOGGER.info(Constants.ASTERISK);
         LOGGER.info(Constants.UNITS);
         LOGGER.info(Constants.ASTERISK);
-        Optional<User> optionalUser = userRepository.findById(userId);
-        if (optionalUser.isPresent()) {
-            List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
-            if (!stockIds.isEmpty()) {
-                for (Long stockId : stockIds) {
-                    BigDecimal stockUnits = calculateTotalUnitsOwnedOnGivenDate(userId, stockId, LocalDate.now().toString());
-                    if (statisticRepository.existsByUserIdAndStockId(userId, stockId)) {
-                        statisticRepository.updateUnits(stockUnits, userId, stockId);
-                    } else {
-                        Statistic statistic = new Statistic();
-                        statistic.setUserId(userId);
-                        statistic.setStockId(stockId);
-                        statistic.setTotalUnits(String.valueOf(stockUnits));
-                        statisticRepository.save(statistic);
-                    }
-                }
-            } else {
-                List<String> errorMessages = Collections.singletonList(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
-                LOGGER.info(errorMessages);
-            }
-        } else {
+        List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
+        if (stockIds.isEmpty()) {
+            List<String> errorMessages = Collections.singletonList(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
+            LOGGER.info(errorMessages);
+            return;
+        }
+        stockIds.forEach(stockId -> processStockUnits(userId, stockId));
+        LOGGER.info("Total units calculation completed for userId: {}", userId);
+    }
+
+    private String getUserDisplayCurrency(Long userId) {
+        return userRepository.findById(userId).map(User::getDisplayCurrency).orElseThrow(() -> {
             List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            return new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+        });
+    }
+
+    private void processStockUnits(Long userId, Long stockId) {
+        BigDecimal stockUnits = calculateTotalUnitsOwnedOnGivenDate(userId, stockId, LocalDate.now().toString());
+        if (statisticRepository.existsByUserIdAndStockId(userId, stockId)) {
+            statisticRepository.updateUnits(stockUnits, userId, stockId);
+        } else {
+            saveStatistic(userId, stockId, stockUnits);
         }
+    }
+
+    private void saveStatistic(Long userId, Long stockId, BigDecimal stockUnits) {
+        Statistic statistic = new Statistic();
+        statistic.setUserId(userId);
+        statistic.setStockId(stockId);
+        statistic.setTotalUnits(String.valueOf(stockUnits));
+        statisticRepository.save(statistic);
     }
 
     @Override
     public BigDecimal calculateTotalCostByStock(Long userId, Long stockId) {
-        BigDecimal totalCost = BigDecimal.ZERO;
-        String displayCurrency;
-        String currency;
+        String displayCurrency = getUserDisplayCurrency(userId);
         Optional<Stock> stock = stockRepository.findById(stockId);
-        Optional<User> optionalUser = userRepository.findById(userId);
-        if (optionalUser.isPresent()) {
-            displayCurrency = optionalUser.get().getDisplayCurrency();
-        } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-        }
-        if (stock.isPresent()) {
-            LOGGER.info("Stock Ticker: {}", stock.get().getStockTicker());
-            List<Transaction> transactions = transactionRepository.getBuyTransactionsByStock(userId, stockId);
-            if (!transactions.isEmpty()) {
-                for (Transaction transaction : transactions) {
-                    currency = transaction.getCurrency();
-                    BigDecimal rate = BigDecimal.ONE;
-                    if (!currency.equals(displayCurrency)) {
-                        String rateName = currency + "/" + displayCurrency;
-                        Optional<Rate> optionalRate = rateRepository.findByRateNameIgnoreCase(rateName);
-                        if (optionalRate.isPresent()) {
-                            rate = new BigDecimal(optionalRate.get().getRate());
-                        } else {
-                            List<String> errorMessages = Collections.singletonList(String.format(INVALID_RATE, rateName));
-                            LOGGER.error(errorMessages);
-                            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-                        }
-                    }
-                    BigDecimal unitPrice = new BigDecimal(transaction.getUnitPrice());
-                    BigDecimal units = new BigDecimal(transaction.getUnits());
-                    BigDecimal fees = new BigDecimal(transaction.getFees());
-                    totalCost = totalCost.add(unitPrice.multiply(units).multiply(rate)).add(fees);
-                }
-            } else {
-                List<String> errorMessages = Collections.singletonList(String.format("No buy transactions found with ticker %s for user id: %d", stock.get().getStockTicker(), userId));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-            }
-            LOGGER.info("Cost: {} ${}", displayCurrency, totalCost.stripTrailingZeros());
-            LOGGER.info("");
-            return totalCost;
-        } else {
+        if (stock.isEmpty()) {
             List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
             LOGGER.error(errorMessages);
             throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
+        LOGGER.info("Stock Ticker: {}", stock.get().getStockTicker());
+        List<Transaction> transactions = transactionRepository.getBuyTransactionsByStock(userId, stockId);
+        if (transactions.isEmpty()) {
+            List<String> errorMessages = Collections.singletonList(String.format("No buy transactions found with ticker %s for user id: %d", stock.get().getStockTicker(), userId));
+            LOGGER.error(errorMessages);
+            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+        }
+        BigDecimal totalCost = transactions.stream().map(transaction -> calculateTransactionCost(transaction, displayCurrency)).reduce(BigDecimal.ZERO, BigDecimal::add);
+        LOGGER.info("Cost: {} ${}", displayCurrency, totalCost.stripTrailingZeros());
+        LOGGER.info("");
+        return totalCost;
+    }
+
+    private BigDecimal calculateTransactionCost(Transaction transaction, String displayCurrency) {
+        String currency = transaction.getCurrency();
+        BigDecimal rate = getExchangeRate(currency, displayCurrency);
+        BigDecimal unitPrice = new BigDecimal(transaction.getUnitPrice());
+        BigDecimal units = new BigDecimal(transaction.getUnits());
+        BigDecimal fees = new BigDecimal(transaction.getFees());
+        return unitPrice.multiply(units).multiply(rate).add(fees);
+    }
+
+    private BigDecimal getExchangeRate(String currency, String displayCurrency) {
+        if (currency.equals(displayCurrency)) {
+            return BigDecimal.ONE;
+        }
+        String rateName = currency + "/" + displayCurrency;
+        return rateRepository.findByRateNameIgnoreCase(rateName).map(rate -> new BigDecimal(rate.getRate())).orElseThrow(() -> {
+            List<String> errorMessages = Collections.singletonList(String.format(INVALID_RATE, rateName));
+            LOGGER.error(errorMessages);
+            return new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+        });
     }
 
     @Transactional
@@ -329,66 +331,70 @@ public class StatisticServiceImpl implements StatisticService {
         LOGGER.info(Constants.ASTERISK);
         LOGGER.info(Constants.COST);
         LOGGER.info(Constants.ASTERISK);
-        BigDecimal totalCost;
-        String displayCurrency;
-        Optional<User> optionalUser = userRepository.findById(userId);
-        if (optionalUser.isPresent()) {
-            displayCurrency = optionalUser.get().getDisplayCurrency();
-            List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
-            if (!stockIds.isEmpty()) {
-                List<Optional<Stock>> optionalStocks = stockRepository.findByStockIds(stockIds);
-                if (!optionalStocks.isEmpty()) {
-                    for (Optional<Stock> optionalStock : optionalStocks) {
-                        if (optionalStock.isPresent()) {
-                            Stock stock = optionalStock.get();
-                            Long stockId = stock.getStockId();
-                            BigDecimal totalStockCost = calculateTotalCostByStock(userId, stockId);
-                            if (statisticRepository.existsByUserIdAndStockId(userId, stockId)) {
-                                statisticRepository.updateCost(totalStockCost, userId, stockId);
-                            } else {
-                                Statistic statistic = new Statistic();
-                                statistic.setUserId(userId);
-                                statistic.setStockId(stockId);
-                                statistic.setTotalCost(String.valueOf(totalStockCost));
-                                statisticRepository.save(statistic);
-                            }
-                        } else {
-                            List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
-                            LOGGER.error(errorMessages);
-                            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-                        }
-                    }
-                }
-            } else {
-                List<String> errorMessages = Collections.singletonList(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
-                LOGGER.info(errorMessages);
-            }
-            totalCost = stockIds.stream().map(stockId -> statisticRepository.getCost(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
-            LOGGER.info("Total Cost: {} ${}", displayCurrency, totalCost.stripTrailingZeros());
-        } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+        String displayCurrency = getUserDisplayCurrency(userId);
+        List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
+        if (stockIds.isEmpty()) {
+            LOGGER.info(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
+            return;
         }
+        List<Optional<Stock>> optionalStocks = stockRepository.findByStockIds(stockIds);
+        if (optionalStocks.isEmpty()) {
+            return; // No stocks to process
+        }
+        processStocksTotalCost(userId, optionalStocks);
+        BigDecimal totalCost = calculateTotalCost(userId, stockIds);
+        LOGGER.info("Total Cost: {} ${}", displayCurrency, totalCost.stripTrailingZeros());
+    }
+
+    private void processStocksTotalCost(Long userId, List<Optional<Stock>> optionalStocks) {
+        for (Optional<Stock> optionalStock : optionalStocks) {
+            if (optionalStock.isPresent()) {
+                Stock stock = optionalStock.get();
+                Long stockId = stock.getStockId();
+                BigDecimal totalStockCost = calculateTotalCostByStock(userId, stockId);
+                saveOrUpdateTotalCost(userId, stockId, totalStockCost);
+            } else {
+                List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
+                LOGGER.error(errorMessages);
+                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            }
+        }
+    }
+
+    private void saveOrUpdateTotalCost(Long userId, Long stockId, BigDecimal totalStockCost) {
+        if (statisticRepository.existsByUserIdAndStockId(userId, stockId)) {
+            statisticRepository.updateCost(totalStockCost, userId, stockId);
+        } else {
+            Statistic statistic = new Statistic();
+            statistic.setUserId(userId);
+            statistic.setStockId(stockId);
+            statistic.setTotalCost(String.valueOf(totalStockCost));
+            statisticRepository.save(statistic);
+        }
+    }
+
+    private BigDecimal calculateTotalCost(Long userId, List<Long> stockIds) {
+        return stockIds.stream().map(stockId -> statisticRepository.getCost(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     @Override
     public BigDecimal calculateTotalValueByStock(Long userId, Long stockId) {
-        Optional<Stock> stock = stockRepository.findById(stockId);
-        if (stock.isPresent()) {
-            LOGGER.info(String.format(STOCK_TICKER, stock.get().getStockTicker()));
-            BigDecimal stockUnits = statisticRepository.getStockUnits(userId, stockId);
-            BigDecimal lastPrice = stockRepository.findLastPriceByStockId(stockId);
-            BigDecimal totalValue = stockUnits.multiply(lastPrice);
-            String baseCurrency = stock.get().getBaseCurrency();
-            LOGGER.info("Value: {} ${}", baseCurrency, totalValue.stripTrailingZeros());
-            LOGGER.info("");
-            return totalValue;
-        } else {
+        Stock stock = getStockById(stockId);
+        BigDecimal stockUnits = statisticRepository.getStockUnits(userId, stockId);
+        BigDecimal lastPrice = stockRepository.findLastPriceByStockId(stockId);
+        BigDecimal totalValue = stockUnits.multiply(lastPrice);
+        String baseCurrency = stock.getBaseCurrency();
+        LOGGER.info("Value: {} ${}", baseCurrency, totalValue.stripTrailingZeros());
+        LOGGER.info("");
+        return totalValue;
+    }
+
+    private Stock getStockById(Long stockId) {
+        return stockRepository.findById(stockId).orElseThrow(() -> {
             List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-        }
+            return new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+        });
     }
 
     @Transactional
@@ -397,143 +403,140 @@ public class StatisticServiceImpl implements StatisticService {
         LOGGER.info(Constants.ASTERISK);
         LOGGER.info(Constants.VALUE);
         LOGGER.info(Constants.ASTERISK);
-        BigDecimal totalValue;
-        String displayCurrency;
-        Optional<User> optionalUser = userRepository.findById(userId);
-        if (optionalUser.isPresent()) {
-            displayCurrency = optionalUser.get().getDisplayCurrency();
-            List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
-            if (!stockIds.isEmpty()) {
-                List<Optional<Stock>> optionalStocks = stockRepository.findByStockIds(stockIds);
-                if (!optionalStocks.isEmpty()) {
-                    for (Optional<Stock> optionalStock : optionalStocks) {
-                        if (optionalStock.isPresent()) {
-                            Stock stock = optionalStock.get();
-                            Long stockId = stock.getStockId();
-                            String baseCurrency = stockRepository.findBaseCurrencyByStockId(stockId);
-                            BigDecimal totalStockValue = calculateTotalValueByStock(userId, stockId);
-                            BigDecimal rate = BigDecimal.ONE;
-                            if (!baseCurrency.equals(displayCurrency)) {
-                                String rateName = baseCurrency + "/" + displayCurrency;
-                                Optional<Rate> optionalRate = rateRepository.findByRateNameIgnoreCase(rateName);
-                                if (optionalRate.isPresent()) {
-                                    rate = new BigDecimal(optionalRate.get().getRate());
-                                } else {
-                                    List<String> errorMessages = Collections.singletonList(String.format(INVALID_RATE, rateName));
-                                    LOGGER.error(errorMessages);
-                                    throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-                                }
-                            }
-                            if (statisticRepository.existsByUserIdAndStockId(userId, stockId)) {
-                                statisticRepository.updateValue(totalStockValue.multiply(rate), userId, stockId);
-                            } else {
-                                Statistic statistic = new Statistic();
-                                statistic.setUserId(userId);
-                                statistic.setStockId(stockId);
-                                statistic.setTotalValue(String.valueOf(totalStockValue.multiply(rate)));
-                                statisticRepository.save(statistic);
-                            }
-                        } else {
-                            List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
-                            LOGGER.error(errorMessages);
-                            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-                        }
-                    }
-                }
-            } else {
-                List<String> errorMessages = Collections.singletonList(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
-                LOGGER.info(errorMessages);
-            }
-            totalValue = stockIds.stream().map(stockId -> statisticRepository.getValue(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
-            LOGGER.info("Total Value: {} ${}", displayCurrency, totalValue.stripTrailingZeros());
-        } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+        String displayCurrency = getUserDisplayCurrency(userId);
+        List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
+        if (stockIds.isEmpty()) {
+            LOGGER.info(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
+            return;
         }
+        List<Optional<Stock>> optionalStocks = stockRepository.findByStockIds(stockIds);
+        if (optionalStocks.isEmpty()) {
+            return;
+        }
+        processStocksValue(userId, displayCurrency, optionalStocks);
+        BigDecimal totalValue = calculateTotalValue(userId, stockIds);
+        LOGGER.info("Total Value: {} ${}", displayCurrency, totalValue.stripTrailingZeros());
+    }
+
+    private void processStocksValue(Long userId, String displayCurrency, List<Optional<Stock>> optionalStocks) {
+        for (Optional<Stock> optionalStock : optionalStocks) {
+            if (optionalStock.isPresent()) {
+                Stock stock = optionalStock.get();
+                Long stockId = stock.getStockId();
+                BigDecimal totalStockValue = calculateTotalValueByStock(userId, stockId);
+                updateOrSaveStockValue(userId, stockId, totalStockValue, displayCurrency);
+            } else {
+                List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
+                LOGGER.error(errorMessages);
+                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            }
+        }
+    }
+
+    private void updateOrSaveStockValue(Long userId, Long stockId, BigDecimal totalStockValue, String displayCurrency) {
+        String baseCurrency = stockRepository.findBaseCurrencyByStockId(stockId);
+        BigDecimal rate = calculateExchangeRate(displayCurrency, baseCurrency);
+        if (statisticRepository.existsByUserIdAndStockId(userId, stockId)) {
+            statisticRepository.updateValue(totalStockValue.multiply(rate), userId, stockId);
+        } else {
+            Statistic statistic = new Statistic();
+            statistic.setUserId(userId);
+            statistic.setStockId(stockId);
+            statistic.setTotalValue(String.valueOf(totalStockValue.multiply(rate)));
+            statisticRepository.save(statistic);
+        }
+    }
+
+    private BigDecimal calculateExchangeRate(String displayCurrency, String baseCurrency) {
+        if (!baseCurrency.equals(displayCurrency)) {
+            String rateName = baseCurrency + "/" + displayCurrency;
+            Optional<Rate> optionalRate = rateRepository.findByRateNameIgnoreCase(rateName);
+            if (optionalRate.isPresent()) {
+                return new BigDecimal(optionalRate.get().getRate());
+            } else {
+                List<String> errorMessages = Collections.singletonList(String.format(INVALID_RATE, rateName));
+                LOGGER.error(errorMessages);
+                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            }
+        }
+        return BigDecimal.ONE;
+    }
+
+    private BigDecimal calculateTotalValue(Long userId, List<Long> stockIds) {
+        return stockIds.stream().map(stockId -> statisticRepository.getValue(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     @Override
     public BigDecimal calculateRealizedProfitsByStock(Long userId, Long stockId) {
         Optional<Stock> stock = stockRepository.findById(stockId);
-        Optional<User> optionalUser = userRepository.findById(userId);
-        BigDecimal totalStockRealizedProfits = BigDecimal.ZERO;
-        String displayCurrency;
-        if (optionalUser.isPresent()) {
-            displayCurrency = optionalUser.get().getDisplayCurrency();
+        String displayCurrency = getUserDisplayCurrency(userId);
+        if (stock.isEmpty()) {
+            handleInvalidStock();
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            Stock foundStock = stock.get();
+            LOGGER.info(String.format(STOCK_TICKER, foundStock.getStockTicker()));
         }
-        if (stock.isPresent()) {
-            LOGGER.info(String.format(STOCK_TICKER, stock.get().getStockTicker()));
-            List<Transaction> sellTransactions = transactionRepository.getSellTransactionsByStock(userId, stockId);
-            if (sellTransactions.isEmpty()) {
-                LOGGER.info("Realized Profits: {} ${}", displayCurrency, BigDecimal.ZERO);
-                LOGGER.info("");
-                return BigDecimal.ZERO;
-            } else {
-                for (Transaction sellTransaction : sellTransactions) {
-                    String sellTransactionDate = sellTransaction.getTransactionDate();
-                    String sellTransactionCurrency = sellTransaction.getCurrency();
-                    BigDecimal rate = BigDecimal.ONE;
-                    if (!sellTransactionCurrency.equals(displayCurrency)) {
-                        String rateName = sellTransactionCurrency + "/" + displayCurrency;
-                        Optional<Rate> optionalRate = rateRepository.findByRateNameIgnoreCase(rateName);
-                        if (optionalRate.isPresent()) {
-                            rate = new BigDecimal(optionalRate.get().getRate());
-                        } else {
-                            List<String> errorMessages = Collections.singletonList(String.format(INVALID_RATE, rateName));
-                            LOGGER.error(errorMessages);
-                            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-                        }
-                    }
-                    BigDecimal unitsSold = new BigDecimal(sellTransaction.getUnits());
-                    BigDecimal unitSellingPrice = new BigDecimal(sellTransaction.getUnitPrice()).multiply(rate);
-                    BigDecimal sellingFees = new BigDecimal(sellTransaction.getFees()).multiply(rate);
-                    List<Transaction> buyTransactions = transactionRepository.getBuyTransactionsByUserIdAndStockIdAndDate(userId, stockId, sellTransactionDate);
-                    if (buyTransactions.isEmpty()) {
-                        List<String> errorMessages = Collections.singletonList("There should be a buy transaction before a sell transaction.");
-                        LOGGER.error(errorMessages);
-                        throw new GeneralException(new CustomError(ErrorConstants.INTERNAL_SERVER_ERROR_ERROR_CODE, errorMessages));
-                    } else {
-                        BigDecimal totalUnitsBought = BigDecimal.ZERO;
-                        BigDecimal totalBuyingCost = BigDecimal.ZERO;
-                        for (Transaction buyTransaction : buyTransactions) {
-                            totalUnitsBought = totalUnitsBought.add(new BigDecimal(buyTransaction.getUnits()));
-                            String buyTransactionCurrency = buyTransaction.getCurrency();
-                            if (!buyTransactionCurrency.equals(displayCurrency)) {
-                                String rateName = sellTransactionCurrency + "/" + displayCurrency;
-                                Optional<Rate> optionalRate = rateRepository.findByRateNameIgnoreCase(rateName);
-                                if (optionalRate.isPresent()) {
-                                    rate = new BigDecimal(optionalRate.get().getRate());
-                                } else {
-                                    List<String> errorMessages = Collections.singletonList(String.format(INVALID_RATE, rateName));
-                                    LOGGER.error(errorMessages);
-                                    throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-                                }
-                            }
-                            BigDecimal unitsBought = new BigDecimal(buyTransaction.getUnits());
-                            BigDecimal unitBuyingPrice = new BigDecimal(buyTransaction.getUnitPrice()).multiply(rate);
-                            BigDecimal buyingFees = new BigDecimal(buyTransaction.getFees()).multiply(rate);
-                            totalBuyingCost = totalBuyingCost.add(unitsBought.multiply(unitBuyingPrice)).add(buyingFees);
-                        }
-                        BigDecimal averageBuyingPrice = totalUnitsBought.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO : totalBuyingCost.divide(totalUnitsBought, 15, RoundingMode.HALF_UP);
-                        BigDecimal realizedProfits = unitsSold.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO : ((((unitsSold.multiply(unitSellingPrice)).subtract(sellingFees)).divide(unitsSold, 15, RoundingMode.HALF_UP)).subtract(averageBuyingPrice)).multiply(unitsSold);
-                        totalStockRealizedProfits = totalStockRealizedProfits.add(realizedProfits);
-
-                    }
-                }
-            }
-            LOGGER.info("Realized Profits: {} ${}", displayCurrency, totalStockRealizedProfits.stripTrailingZeros());
+        List<Transaction> sellTransactions = transactionRepository.getSellTransactionsByStock(userId, stockId);
+        if (sellTransactions.isEmpty()) {
+            LOGGER.info("Realized Profits: {} ${}", displayCurrency, BigDecimal.ZERO);
             LOGGER.info("");
-            return totalStockRealizedProfits;
+            return BigDecimal.ZERO;
         } else {
-            List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            return calculateTotalRealizedProfits(userId, stockId, displayCurrency, sellTransactions);
         }
+    }
+
+    private BigDecimal calculateTotalRealizedProfits(Long userId, Long stockId, String displayCurrency, List<Transaction> sellTransactions) {
+        BigDecimal totalStockRealizedProfits = BigDecimal.ZERO;
+        for (Transaction sellTransaction : sellTransactions) {
+            BigDecimal rate = getRateForTransaction(sellTransaction, displayCurrency);
+            BigDecimal unitsSold = new BigDecimal(sellTransaction.getUnits());
+            BigDecimal unitSellingPrice = new BigDecimal(sellTransaction.getUnitPrice()).multiply(rate);
+            BigDecimal sellingFees = new BigDecimal(sellTransaction.getFees()).multiply(rate);
+            List<Transaction> buyTransactions = transactionRepository.getBuyTransactionsByUserIdAndStockIdAndDate(userId, stockId, sellTransaction.getTransactionDate());
+            if (buyTransactions.isEmpty()) {
+                List<String> errorMessages = Collections.singletonList("There should be a buy transaction before a sell transaction.");
+                LOGGER.error(errorMessages);
+                throw new GeneralException(new CustomError(ErrorConstants.INTERNAL_SERVER_ERROR_ERROR_CODE, errorMessages));
+            } else {
+                BigDecimal realizedProfits = calculateRealizedProfitsForSellTransaction(buyTransactions, unitsSold, unitSellingPrice, sellingFees);
+                totalStockRealizedProfits = totalStockRealizedProfits.add(realizedProfits);
+            }
+        }
+        LOGGER.info("Realized Profits: {} ${}", displayCurrency, totalStockRealizedProfits.stripTrailingZeros());
+        LOGGER.info("");
+        return totalStockRealizedProfits;
+    }
+
+    private BigDecimal getRateForTransaction(Transaction transaction, String displayCurrency) {
+        String transactionCurrency = transaction.getCurrency();
+        if (!transactionCurrency.equals(displayCurrency)) {
+            String rateName = transactionCurrency + "/" + displayCurrency;
+            Optional<Rate> optionalRate = rateRepository.findByRateNameIgnoreCase(rateName);
+            if (optionalRate.isPresent()) {
+                return new BigDecimal(optionalRate.get().getRate());
+            } else {
+                List<String> errorMessages = Collections.singletonList(String.format(INVALID_RATE, rateName));
+                LOGGER.error(errorMessages);
+                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            }
+        }
+        return BigDecimal.ONE;
+    }
+
+    private BigDecimal calculateRealizedProfitsForSellTransaction(List<Transaction> buyTransactions, BigDecimal unitsSold, BigDecimal unitSellingPrice, BigDecimal sellingFees) {
+        BigDecimal totalUnitsBought = BigDecimal.ZERO;
+        BigDecimal totalBuyingCost = BigDecimal.ZERO;
+        for (Transaction buyTransaction : buyTransactions) {
+            totalUnitsBought = totalUnitsBought.add(new BigDecimal(buyTransaction.getUnits()));
+            BigDecimal rate = getRateForTransaction(buyTransaction, buyTransaction.getCurrency());
+            BigDecimal unitsBought = new BigDecimal(buyTransaction.getUnits());
+            BigDecimal unitBuyingPrice = new BigDecimal(buyTransaction.getUnitPrice()).multiply(rate);
+            BigDecimal buyingFees = new BigDecimal(buyTransaction.getFees()).multiply(rate);
+            totalBuyingCost = totalBuyingCost.add(unitsBought.multiply(unitBuyingPrice)).add(buyingFees);
+        }
+        BigDecimal averageBuyingPrice = totalUnitsBought.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO : totalBuyingCost.divide(totalUnitsBought, 15, RoundingMode.HALF_UP);
+        return unitsSold.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO : ((((unitsSold.multiply(unitSellingPrice)).subtract(sellingFees)).divide(unitsSold, 15, RoundingMode.HALF_UP)).subtract(averageBuyingPrice)).multiply(unitsSold);
     }
 
     @Transactional
@@ -542,89 +545,71 @@ public class StatisticServiceImpl implements StatisticService {
         LOGGER.info(Constants.ASTERISK);
         LOGGER.info(Constants.REALIZED_PROFITS);
         LOGGER.info(Constants.ASTERISK);
-        BigDecimal totalRealizedProfits;
-        String displayCurrency;
-        Optional<User> optionalUser = userRepository.findById(userId);
-        if (optionalUser.isPresent()) {
-            displayCurrency = optionalUser.get().getDisplayCurrency();
-            List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
-            if (!stockIds.isEmpty()) {
-                List<Optional<Stock>> optionalStocks = stockRepository.findByStockIds(stockIds);
-                if (!optionalStocks.isEmpty()) {
-                    for (Optional<Stock> optionalStock : optionalStocks) {
-                        if (optionalStock.isPresent()) {
-                            Stock stock = optionalStock.get();
-                            Long stockId = stock.getStockId();
-                            BigDecimal realizedProfits = calculateRealizedProfitsByStock(userId, stockId);
-                            if (statisticRepository.existsByUserIdAndStockId(userId, stockId)) {
-                                statisticRepository.updateRealizedProfits(realizedProfits, userId, stockId);
-                            } else {
-                                Statistic statistic = new Statistic();
-                                statistic.setUserId(userId);
-                                statistic.setStockId(stockId);
-                                statistic.setRealizedProfits(String.valueOf(realizedProfits));
-                                statisticRepository.save(statistic);
-                            }
-                        } else {
-                            List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
-                            LOGGER.error(errorMessages);
-                            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-                        }
-                    }
-                }
-            } else {
-                List<String> errorMessages = Collections.singletonList(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
-                LOGGER.info(errorMessages);
-            }
-            totalRealizedProfits = stockIds.stream().map(stockId -> statisticRepository.getRealizedProfits(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
-            LOGGER.info("Total Realized Profits: {} ${}", displayCurrency, totalRealizedProfits.stripTrailingZeros());
-        } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+        String displayCurrency = getUserDisplayCurrency(userId);
+        List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
+        if (stockIds.isEmpty()) {
+            LOGGER.info(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
+            return;
         }
+        List<Optional<Stock>> optionalStocks = stockRepository.findByStockIds(stockIds);
+        if (optionalStocks.isEmpty()) {
+            return;
+        }
+        processStocksRealizedProfits(userId, optionalStocks);
+        BigDecimal totalRealizedProfits = calculateTotalRealizedProfits(userId, stockIds);
+        LOGGER.info("Total Realized Profits: {} ${}", displayCurrency, totalRealizedProfits.stripTrailingZeros());
+    }
+
+    private void processStocksRealizedProfits(Long userId, List<Optional<Stock>> optionalStocks) {
+        for (Optional<Stock> optionalStock : optionalStocks) {
+            if (optionalStock.isPresent()) {
+                Stock stock = optionalStock.get();
+                Long stockId = stock.getStockId();
+                BigDecimal realizedProfits = calculateRealizedProfitsByStock(userId, stockId);
+                saveOrUpdateRealizedProfits(userId, stockId, realizedProfits);
+            } else {
+                List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
+                LOGGER.error(errorMessages);
+                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            }
+        }
+    }
+
+    private void saveOrUpdateRealizedProfits(Long userId, Long stockId, BigDecimal realizedProfits) {
+        if (statisticRepository.existsByUserIdAndStockId(userId, stockId)) {
+            statisticRepository.updateRealizedProfits(realizedProfits, userId, stockId);
+        } else {
+            Statistic statistic = new Statistic();
+            statistic.setUserId(userId);
+            statistic.setStockId(stockId);
+            statistic.setRealizedProfits(String.valueOf(realizedProfits));
+            statisticRepository.save(statistic);
+        }
+    }
+
+    private BigDecimal calculateTotalRealizedProfits(Long userId, List<Long> stockIds) {
+        return stockIds.stream().map(stockId -> statisticRepository.getRealizedProfits(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     @Override
     public BigDecimal calculateUnrealizedProfitsByStock(Long userId, Long stockId) {
-        Optional<Stock> stock = stockRepository.findById(stockId);
-        Optional<User> optionalUser = userRepository.findById(userId);
-        String displayCurrency;
-        if (optionalUser.isPresent()) {
-            displayCurrency = optionalUser.get().getDisplayCurrency();
-        } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-        }
-        if (stock.isPresent()) {
-            LOGGER.info(String.format(STOCK_TICKER, stock.get().getStockTicker()));
-            String baseCurrency = stock.get().getBaseCurrency();
-            BigDecimal rate = BigDecimal.ONE;
-            if (!baseCurrency.equals(displayCurrency)) {
-                String rateName = baseCurrency + "/" + displayCurrency;
-                Optional<Rate> optionalRate = rateRepository.findByRateNameIgnoreCase(rateName);
-                if (optionalRate.isPresent()) {
-                    rate = new BigDecimal(optionalRate.get().getRate());
-                } else {
-                    List<String> errorMessages = Collections.singletonList(String.format(INVALID_RATE, rateName));
-                    LOGGER.error(errorMessages);
-                    throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-                }
-            }
-            BigDecimal lastPrice = (stockRepository.findLastPriceByStockId(stockId)).multiply(rate);
-            BigDecimal stockCost = statisticRepository.getCost(userId, stockId);
-            BigDecimal units = statisticRepository.getStockUnits(userId, stockId);
-            BigDecimal averageBuyingPrice = units.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO : stockCost.divide(units, 15, RoundingMode.HALF_UP);
-            BigDecimal unrealizedProfits = (lastPrice.subtract(averageBuyingPrice)).multiply(units);
-            LOGGER.info("Unrealized Profits: {} ${}", displayCurrency, unrealizedProfits.stripTrailingZeros());
-            LOGGER.info("");
-            return unrealizedProfits;
-        } else {
-            List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-        }
+        Stock stock = getStockById(stockId);
+        String displayCurrency = getUserDisplayCurrency(userId);
+        LOGGER.info(String.format(STOCK_TICKER, stock.getStockTicker()));
+        String baseCurrency = stock.getBaseCurrency();
+        BigDecimal rate = getExchangeRate(baseCurrency, displayCurrency);
+        BigDecimal lastPrice = stockRepository.findLastPriceByStockId(stockId).multiply(rate);
+        BigDecimal stockCost = statisticRepository.getCost(userId, stockId);
+        BigDecimal units = statisticRepository.getStockUnits(userId, stockId);
+        BigDecimal averageBuyingPrice = calculateAverageBuyingPrice(stockCost, units);
+        BigDecimal unrealizedProfits = (lastPrice.subtract(averageBuyingPrice)).multiply(units);
+        LOGGER.info("Unrealized Profits: {} ${}", displayCurrency, unrealizedProfits.stripTrailingZeros());
+        LOGGER.info("");
+        return unrealizedProfits;
+    }
+
+    private BigDecimal calculateAverageBuyingPrice(BigDecimal stockCost, BigDecimal units) {
+        return units.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO : stockCost.divide(units, 15, RoundingMode.HALF_UP);
     }
 
     @Transactional
@@ -633,72 +618,78 @@ public class StatisticServiceImpl implements StatisticService {
         LOGGER.info(Constants.ASTERISK);
         LOGGER.info(Constants.UNREALIZED_PROFITS);
         LOGGER.info(Constants.ASTERISK);
-        BigDecimal totalUnrealizedProfits;
-        String displayCurrency;
-        Optional<User> optionalUser = userRepository.findById(userId);
-        if (optionalUser.isPresent()) {
-            displayCurrency = optionalUser.get().getDisplayCurrency();
-            List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
-            if (!stockIds.isEmpty()) {
-                List<Optional<Stock>> optionalStocks = stockRepository.findByStockIds(stockIds);
-                if (!optionalStocks.isEmpty()) {
-                    for (Optional<Stock> optionalStock : optionalStocks) {
-                        if (optionalStock.isPresent()) {
-                            Stock stock = optionalStock.get();
-                            Long stockId = stock.getStockId();
-                            BigDecimal unrealizedProfits = calculateUnrealizedProfitsByStock(userId, stockId);
-                            if (statisticRepository.existsByUserIdAndStockId(userId, stockId)) {
-                                statisticRepository.updateUnrealizedProfits(unrealizedProfits, userId, stockId);
-                            } else {
-                                Statistic statistic = new Statistic();
-                                statistic.setUserId(userId);
-                                statistic.setStockId(stockId);
-                                statistic.setUnrealizedProfits(String.valueOf(unrealizedProfits));
-                                statisticRepository.save(statistic);
-                            }
-                        } else {
-                            List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
-                            LOGGER.error(errorMessages);
-                            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-                        }
-                    }
-                }
-            } else {
-                List<String> errorMessages = Collections.singletonList(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
-                LOGGER.info(errorMessages);
-            }
-            totalUnrealizedProfits = stockIds.stream().map(stockId -> statisticRepository.getUnrealizedProfits(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
-            LOGGER.info("Total Unrealized Profits: {} ${}", displayCurrency, totalUnrealizedProfits.stripTrailingZeros());
-        } else {
+        User user = getUserById(userId);
+        String displayCurrency = user.getDisplayCurrency();
+        List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
+        if (stockIds.isEmpty()) {
+            LOGGER.info(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
+            return;
+        }
+        processUnrealizedProfitsForStocks(userId, stockIds);
+        BigDecimal totalUnrealizedProfits = calculateTotalUnrealizedProfits(userId, stockIds);
+        LOGGER.info("Total Unrealized Profits: {} ${}", displayCurrency, totalUnrealizedProfits.stripTrailingZeros());
+    }
+
+    private User getUserById(Long userId) {
+        return userRepository.findById(userId).orElseThrow(() -> {
             List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            return new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+        });
+    }
+
+    private void processUnrealizedProfitsForStocks(Long userId, List<Long> stockIds) {
+        List<Stock> stocks = getStocksByIds(stockIds);
+        for (Stock stock : stocks) {
+            Long stockId = stock.getStockId();
+            BigDecimal unrealizedProfits = calculateUnrealizedProfitsByStock(userId, stockId);
+            if (statisticRepository.existsByUserIdAndStockId(userId, stockId)) {
+                statisticRepository.updateUnrealizedProfits(unrealizedProfits, userId, stockId);
+            } else {
+                saveNewStatistic(userId, stockId, unrealizedProfits);
+            }
         }
+    }
+
+    private List<Stock> getStocksByIds(List<Long> stockIds) {
+        return stockRepository.findByStockIds(stockIds).stream().flatMap(Optional::stream).toList();
+    }
+
+    private void saveNewStatistic(Long userId, Long stockId, BigDecimal unrealizedProfits) {
+        Statistic statistic = new Statistic();
+        statistic.setUserId(userId);
+        statistic.setStockId(stockId);
+        statistic.setUnrealizedProfits(String.valueOf(unrealizedProfits));
+        statisticRepository.save(statistic);
+    }
+
+    private BigDecimal calculateTotalUnrealizedProfits(Long userId, List<Long> stockIds) {
+        return stockIds.stream().map(stockId -> statisticRepository.getUnrealizedProfits(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     @Override
     public BigDecimal calculateTotalDividendsEarnedByStock(Long userId, Long stockId) {
-        Optional<Stock> stock = stockRepository.findById(stockId);
-        if (stock.isPresent()) {
-            LOGGER.info(String.format(STOCK_TICKER, stock.get().getStockTicker()));
-            String earliestDate = transactionRepository.getEarliestTransactionDate(userId, stockId);
-            String baseCurrency = stock.get().getBaseCurrency();
-            List<Dividend> dividends = dividendRepository.getRelevantDividends(stockId, earliestDate);
-            BigDecimal dividendsEarned = dividends.stream().map(dividend -> {
-                String exDate = dividend.getExDate();
-                BigDecimal totalUnits = calculateTotalUnitsOwnedOnGivenDate(userId, stockId, exDate);
-                BigDecimal dividendsEarnedExDate = totalUnits.multiply(new BigDecimal(dividend.getPayout()));
-                LOGGER.info(String.format("Dividends Earned on ex Date %s: %s $%s", exDate, baseCurrency, dividendsEarnedExDate.stripTrailingZeros()));
-                return dividendsEarnedExDate;
-            }).reduce(BigDecimal.ZERO, BigDecimal::add);
-            LOGGER.info(String.format("Dividends Earned: %s $%.2f", baseCurrency, dividendsEarned.stripTrailingZeros()));
-            LOGGER.info("");
-            return dividendsEarned;
-        } else {
-            List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-        }
+        Stock stock = getStockById(stockId);
+        LOGGER.info(String.format(STOCK_TICKER, stock.getStockTicker()));
+        String earliestDate = transactionRepository.getEarliestTransactionDate(userId, stockId);
+        String baseCurrency = stock.getBaseCurrency();
+        List<Dividend> dividends = dividendRepository.getRelevantDividends(stockId, earliestDate);
+        BigDecimal totalDividendsEarned = calculateDividendsForStock(userId, stockId, dividends, baseCurrency);
+        LOGGER.info(String.format("Total Dividends Earned: %s $%.2f", baseCurrency, totalDividendsEarned.stripTrailingZeros()));
+        LOGGER.info("");
+        return totalDividendsEarned;
+    }
+
+    private BigDecimal calculateDividendsForStock(Long userId, Long stockId, List<Dividend> dividends, String baseCurrency) {
+        return dividends.stream().map(dividend -> calculateDividendForExDate(userId, stockId, dividend, baseCurrency)).reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal calculateDividendForExDate(Long userId, Long stockId, Dividend dividend, String baseCurrency) {
+        String exDate = dividend.getExDate();
+        BigDecimal totalUnits = calculateTotalUnitsOwnedOnGivenDate(userId, stockId, exDate);
+        BigDecimal dividendsEarnedExDate = totalUnits.multiply(new BigDecimal(dividend.getPayout()));
+        LOGGER.info(String.format("Dividends Earned on ex Date %s: %s $%s", exDate, baseCurrency, dividendsEarnedExDate.stripTrailingZeros()));
+        return dividendsEarnedExDate;
     }
 
     @Override
@@ -707,97 +698,72 @@ public class StatisticServiceImpl implements StatisticService {
         LOGGER.info(Constants.ASTERISK);
         LOGGER.info(Constants.DIVIDENDS);
         LOGGER.info(Constants.ASTERISK);
-        BigDecimal totalDividends;
-        String displayCurrency;
-        Optional<User> optionalUser = userRepository.findById(userId);
-        if (optionalUser.isPresent()) {
-            displayCurrency = optionalUser.get().getDisplayCurrency();
-            List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
-            if (!stockIds.isEmpty()) {
-                List<Optional<Stock>> optionalStocks = stockRepository.findDividendStocksByIds(stockIds);
-                if (!optionalStocks.isEmpty()) {
-                    for (Optional<Stock> optionalStock : optionalStocks) {
-                        if (optionalStock.isPresent()) {
-                            Stock stock = optionalStock.get();
-                            Long stockId = stock.getStockId();
-                            String baseCurrency = stockRepository.findBaseCurrencyByStockId(stockId);
-                            BigDecimal dividendsEarned = calculateTotalDividendsEarnedByStock(userId, stockId);
-                            BigDecimal rate = BigDecimal.ONE;
-                            if (!baseCurrency.equals(displayCurrency)) {
-                                String rateName = baseCurrency + "/" + displayCurrency;
-                                Optional<Rate> optionalRate = rateRepository.findByRateNameIgnoreCase(rateName);
-                                if (optionalRate.isPresent()) {
-                                    rate = new BigDecimal(optionalRate.get().getRate());
-                                } else {
-                                    List<String> errorMessages = Collections.singletonList(String.format(INVALID_RATE, rateName));
-                                    LOGGER.error(errorMessages);
-                                    throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-                                }
-                            }
-                            if (statisticRepository.existsByUserIdAndStockId(userId, stockId)) {
-                                statisticRepository.updateDividends(dividendsEarned.multiply(rate), userId, stockId);
-                            } else {
-                                Statistic statistic = new Statistic();
-                                statistic.setUserId(userId);
-                                statistic.setStockId(stockId);
-                                statistic.setDividendsEarned(String.valueOf(dividendsEarned.multiply(rate)));
-                                statisticRepository.save(statistic);
-                            }
-                        } else {
-                            List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
-                            LOGGER.error(errorMessages);
-                            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-                        }
-                    }
-                }
-            } else {
-                List<String> errorMessages = Collections.singletonList(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
-                LOGGER.info(errorMessages);
+        String displayCurrency = getUserDisplayCurrency(userId);
+        List<Long> stockIds = getStockIdsByUserId(userId);
+        if (!stockIds.isEmpty()) {
+            List<Stock> dividendStocks = getDividendStocks(stockIds);
+            for (Stock stock : dividendStocks) {
+                Long stockId = stock.getStockId();
+                String baseCurrency = stockRepository.findBaseCurrencyByStockId(stockId);
+                BigDecimal dividendsEarned = calculateTotalDividendsEarnedByStock(userId, stockId);
+                BigDecimal conversionRate = getExchangeRate(baseCurrency, displayCurrency);
+                BigDecimal convertedDividends = dividendsEarned.multiply(conversionRate);
+                updateOrSaveStatisticWithDividends(userId, stockId, convertedDividends);
             }
-            totalDividends = stockIds.stream().map(stockId -> statisticRepository.getDividends(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
-            LOGGER.info("Total Dividends Earned: {} ${}", displayCurrency, totalDividends.stripTrailingZeros());
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            LOGGER.info(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
+        }
+        BigDecimal totalDividends = stockIds.stream().map(stockId -> statisticRepository.getDividends(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
+        LOGGER.info("Total Dividends Earned: {} ${}", displayCurrency, totalDividends.stripTrailingZeros());
+        LOGGER.info(Constants.ASTERISK);
+    }
+
+    private List<Long> getStockIdsByUserId(Long userId) {
+        return stockRepository.findAllStockIdsByUserId(userId);
+    }
+
+    private List<Stock> getDividendStocks(List<Long> stockIds) {
+        List<Optional<Stock>> optionalStocks = stockRepository.findDividendStocksByIds(stockIds);
+        return optionalStocks.stream().filter(Optional::isPresent).map(Optional::get).toList();
+    }
+
+    private void updateOrSaveStatisticWithDividends(Long userId, Long stockId, BigDecimal convertedDividends) {
+        if (statisticRepository.existsByUserIdAndStockId(userId, stockId)) {
+            statisticRepository.updateDividends(convertedDividends, userId, stockId);
+        } else {
+            Statistic statistic = new Statistic();
+            statistic.setUserId(userId);
+            statistic.setStockId(stockId);
+            statistic.setDividendsEarned(String.valueOf(convertedDividends));
+            statisticRepository.save(statistic);
         }
     }
 
     @Override
     public BigDecimal calculateTotalProfitsByStock(Long userId, Long stockId) {
-        Optional<Stock> stock = stockRepository.findById(stockId);
-        Optional<User> optionalUser = userRepository.findById(userId);
-        String displayCurrency;
-        BigDecimal totalProfits = BigDecimal.ZERO;
-        if (optionalUser.isPresent()) {
-            displayCurrency = optionalUser.get().getDisplayCurrency();
-        } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
+        String displayCurrency = getUserDisplayCurrency(userId);
+        Stock stock = getStockById(stockId);
+        LOGGER.info(String.format(STOCK_TICKER, stock.getStockTicker()));
+        Statistic statistic = getStatisticByUserIdAndStockId(userId, stockId);
+        BigDecimal totalProfits = calculateProfitsFromStatistic(statistic);
+        LOGGER.info("Total Profits: {} ${}", displayCurrency, totalProfits.stripTrailingZeros());
+        LOGGER.info("");
+        return totalProfits;
+    }
+
+    private Statistic getStatisticByUserIdAndStockId(Long userId, Long stockId) {
+        return statisticRepository.findByUserIdAndStockId(userId, stockId).orElseThrow(() -> {
+            List<String> errorMessages = Collections.singletonList(String.format("Error retrieving statistic for stock ID %d and user ID %d", stockId, userId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-        }
-        if (stock.isPresent()) {
-            LOGGER.info(String.format(STOCK_TICKER, stock.get().getStockTicker()));
-            Optional<Statistic> optionalStatistic = statisticRepository.findByUserIdAndStockId(userId, stockId);
-            if (optionalStatistic.isPresent()) {
-                Statistic statistic = optionalStatistic.get();
-                BigDecimal realizedProfits = new BigDecimal(statistic.getRealizedProfits());
-                BigDecimal unrealizedProfits = new BigDecimal(statistic.getUnrealizedProfits());
-                BigDecimal dividendsEarned = Optional.ofNullable(statistic.getDividendsEarned()).map(BigDecimal::new).orElse(BigDecimal.ZERO);
-                totalProfits = totalProfits.add(realizedProfits).add(unrealizedProfits).add(dividendsEarned);
-            } else {
-                List<String> errorMessages = Collections.singletonList(String.format("Error retrieving statistic for stock ticker %s and user id %d", stock.get().getStockTicker(), userId));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-            }
-            LOGGER.info("Total Profits: {} ${}", displayCurrency, totalProfits.stripTrailingZeros());
-            LOGGER.info("");
-            return totalProfits;
-        } else {
-            List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-        }
+            return new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+        });
+    }
+
+    private BigDecimal calculateProfitsFromStatistic(Statistic statistic) {
+        BigDecimal realizedProfits = new BigDecimal(statistic.getRealizedProfits());
+        BigDecimal unrealizedProfits = new BigDecimal(statistic.getUnrealizedProfits());
+        BigDecimal dividendsEarned = Optional.ofNullable(statistic.getDividendsEarned()).map(BigDecimal::new).orElse(BigDecimal.ZERO);
+        return realizedProfits.add(unrealizedProfits).add(dividendsEarned);
     }
 
     @Transactional
@@ -806,48 +772,68 @@ public class StatisticServiceImpl implements StatisticService {
         LOGGER.info(Constants.ASTERISK);
         LOGGER.info(Constants.TOTAL_PROFITS);
         LOGGER.info(Constants.ASTERISK);
-        BigDecimal overallProfits;
-        String displayCurrency;
         Optional<User> optionalUser = userRepository.findById(userId);
         if (optionalUser.isPresent()) {
-            displayCurrency = optionalUser.get().getDisplayCurrency();
-            List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
-            if (!stockIds.isEmpty()) {
-                List<Optional<Stock>> optionalStocks = stockRepository.findByStockIds(stockIds);
-                if (!optionalStocks.isEmpty()) {
-                    for (Optional<Stock> optionalStock : optionalStocks) {
-                        if (optionalStock.isPresent()) {
-                            Stock stock = optionalStock.get();
-                            Long stockId = stock.getStockId();
-                            BigDecimal totalProfits = calculateTotalProfitsByStock(userId, stockId);
-                            if (statisticRepository.existsByUserIdAndStockId(userId, stockId)) {
-                                statisticRepository.updateTotalProfits(totalProfits, userId, stockId);
-                            } else {
-                                Statistic statistic = new Statistic();
-                                statistic.setUserId(userId);
-                                statistic.setStockId(stockId);
-                                statistic.setTotalProfits(String.valueOf(totalProfits));
-                                statisticRepository.save(statistic);
-                            }
-                        } else {
-                            List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
-                            LOGGER.error(errorMessages);
-                            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
-                        }
-                    }
-                }
-            } else {
-                List<String> errorMessages = Collections.singletonList(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
-                LOGGER.info(errorMessages);
-            }
-            overallProfits = stockIds.stream().map(stockId -> statisticRepository.getTotalProfits(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
-            LOGGER.info("Total Profits: {} ${}", displayCurrency, overallProfits.stripTrailingZeros());
-            LOGGER.info(Constants.ASTERISK);
+            handleUserFound(optionalUser.get(), userId);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            handleUserNotFound(userId);
         }
+    }
+
+    private void handleUserFound(User user, Long userId) {
+        String displayCurrency = user.getDisplayCurrency();
+        List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
+        if (!stockIds.isEmpty()) {
+            processStocks(userId, stockIds, displayCurrency);
+        } else {
+            handleNoStocksFound(userId);
+        }
+    }
+
+    private void handleUserNotFound(Long userId) {
+        List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
+        LOGGER.error(errorMessages);
+        throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+    }
+
+    private void processStocks(Long userId, List<Long> stockIds, String displayCurrency) {
+        List<Optional<Stock>> optionalStocks = stockRepository.findByStockIds(stockIds);
+        if (!optionalStocks.isEmpty()) {
+            processOptionalStocks(userId, optionalStocks);
+            calculateAndLogOverallProfits(userId, stockIds, displayCurrency);
+        }
+    }
+
+    private void handleNoStocksFound(Long userId) {
+        List<String> errorMessages = Collections.singletonList(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
+        LOGGER.info(errorMessages);
+    }
+
+    private void processOptionalStocks(Long userId, List<Optional<Stock>> optionalStocks) {
+        for (Optional<Stock> optionalStock : optionalStocks) {
+            optionalStock.ifPresentOrElse(stock -> processValidStock(userId, stock), this::handleInvalidStock);
+        }
+    }
+
+    private void processValidStock(Long userId, Stock stock) {
+        Long stockId = stock.getStockId();
+        BigDecimal totalProfits = calculateTotalProfitsByStock(userId, stockId);
+        if (statisticRepository.existsByUserIdAndStockId(userId, stockId)) {
+            statisticRepository.updateTotalProfits(totalProfits, userId, stockId);
+        } else {
+            saveNewStatistic(userId, stockId, totalProfits);
+        }
+    }
+
+    private void handleInvalidStock() {
+        List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
+        LOGGER.error(errorMessages);
+        throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+    }
+
+    private void calculateAndLogOverallProfits(Long userId, List<Long> stockIds, String displayCurrency) {
+        BigDecimal overallProfits = stockIds.stream().map(stockId -> statisticRepository.getTotalProfits(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
+        LOGGER.info("Total Profits: {} ${}", displayCurrency, overallProfits.stripTrailingZeros());
     }
 
     @Transactional

@@ -28,7 +28,6 @@ public class StockController {
         this.stockService = stockService;
     }
 
-    // CREATE
     @PostMapping("/create")
     public ResponseEntity<StockDto> createStock(@Valid @RequestBody StockDto stockDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -41,7 +40,6 @@ public class StockController {
         }
     }
 
-    // READ
     @GetMapping("/all")
     public ResponseEntity<List<StockDto>> getAllStocks() {
         List<StockDto> stockDtoList = stockService.getAllStocks();
@@ -84,7 +82,6 @@ public class StockController {
         return ResponseEntity.ok(stockDtoList);
     }
 
-    // UPDATE
     @PostMapping("/update/id/{stockId}")
     public ResponseEntity<StockDto> updateStockById(@PathVariable Long stockId, @Valid @RequestBody StockDto stockDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -109,7 +106,6 @@ public class StockController {
         }
     }
 
-    // DELETE
     @DeleteMapping("/delete/all")
     public ResponseEntity<String> deleteAllStocks() {
         stockService.deleteAllStocks();

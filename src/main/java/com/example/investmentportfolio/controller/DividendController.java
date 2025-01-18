@@ -26,7 +26,6 @@ public class DividendController {
         this.dividendService = dividendService;
     }
 
-    // CREATE
     @PostMapping("/create")
     public ResponseEntity<DividendDto> createDividend(@Valid @RequestBody DividendDto dividendDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -39,7 +38,6 @@ public class DividendController {
         }
     }
 
-    // READ
     @GetMapping("/all")
     public ResponseEntity<List<DividendDto>> getAllDividends() {
         List<DividendDto> dividendDtoList = dividendService.getAllDividends();
@@ -64,7 +62,6 @@ public class DividendController {
         return ResponseEntity.ok(dividendDtoList);
     }
 
-    // UPDATE
     @PostMapping("/update/id/{dividendId}")
     public ResponseEntity<DividendDto> updateDividendById(@PathVariable Long dividendId, @Valid @RequestBody DividendDto dividendDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -77,7 +74,6 @@ public class DividendController {
         }
     }
 
-    // DELETE
     @DeleteMapping("/delete/all")
     public ResponseEntity<String> deleteAllDividends() {
         dividendService.deleteAllDividends();

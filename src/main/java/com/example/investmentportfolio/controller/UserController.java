@@ -26,7 +26,6 @@ public class UserController {
         this.userService = userService;
     }
 
-    // CREATE
     @PostMapping("/create")
     public ResponseEntity<UserDto> createUser(@Valid @RequestBody UserDto userDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -39,7 +38,6 @@ public class UserController {
         }
     }
 
-    // READ
     @GetMapping("/all")
     public ResponseEntity<List<UserDto>> getAllUsers() {
         List<UserDto> userDtoList = userService.getAllUsers();
@@ -58,7 +56,6 @@ public class UserController {
         return ResponseEntity.ok(userDto);
     }
 
-    // UPDATE
     @PostMapping("/update/id/{userId}")
     public ResponseEntity<UserDto> updateUserById(@PathVariable Long userId, @Valid @RequestBody UserDto userDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -83,7 +80,6 @@ public class UserController {
         }
     }
 
-    // DELETE
     @DeleteMapping("/delete/all")
     public ResponseEntity<String> deleteAllUsers() {
         userService.deleteAllUsers();

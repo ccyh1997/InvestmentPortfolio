@@ -9,5 +9,4 @@ public class ValidationException extends RuntimeException {
     public ValidationException(CustomError error) {
         this.error = error;
     }
-
 }

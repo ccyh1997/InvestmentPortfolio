@@ -9,5 +9,4 @@ public class GeneralException extends RuntimeException {
     public GeneralException(CustomError error) {
         this.error = error;
     }
-
 }

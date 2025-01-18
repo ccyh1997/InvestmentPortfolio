@@ -26,7 +26,6 @@ public class StatisticController {
         this.statisticService = statisticService;
     }
 
-    // CREATE
     @PostMapping("/create")
     public ResponseEntity<StatisticDto> createStatistic(@Valid @RequestBody StatisticDto statisticDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -39,7 +38,6 @@ public class StatisticController {
         }
     }
 
-    // READ
     @GetMapping("/all")
     public ResponseEntity<List<StatisticDto>> getAllStatistics() {
         List<StatisticDto> statisticDtoList = statisticService.getAllStatistics();
@@ -58,7 +56,6 @@ public class StatisticController {
         return ResponseEntity.ok(statisticDtoList);
     }
 
-    // UPDATE
     @PostMapping("/update/id/{statisticId}")
     public ResponseEntity<StatisticDto> updateStatisticById(@PathVariable Long statisticId, @Valid @RequestBody StatisticDto statisticDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -71,7 +68,6 @@ public class StatisticController {
         }
     }
 
-    // DELETE
     @DeleteMapping("/delete/all")
     public ResponseEntity<String> deleteAllStatistics() {
         statisticService.deleteAllStatistics();

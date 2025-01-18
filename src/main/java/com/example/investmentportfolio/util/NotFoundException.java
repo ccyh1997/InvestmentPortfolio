@@ -9,5 +9,4 @@ public class NotFoundException extends RuntimeException {
     public NotFoundException(CustomError error) {
         this.error = error;
     }
-
 }

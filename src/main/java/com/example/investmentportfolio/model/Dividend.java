@@ -38,18 +38,4 @@ public class Dividend {
 
     @Column
     private String payout;
-
-    @Override
-    public String toString() {
-        return "Dividend{" +
-                "dividendId=" + dividendId +
-                ", stockId=" + stockId +
-                ", stockTicker='" + stockTicker + '\'' +
-                ", exchangeId=" + exchangeId +
-                ", exchange='" + exchange + '\'' +
-                ", exDate='" + exDate + '\'' +
-                ", payDate='" + payDate + '\'' +
-                ", payout='" + payout + '\'' +
-                '}';
-    }
 }

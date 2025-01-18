@@ -26,7 +26,6 @@ public class RateController {
         this.rateService = rateService;
     }
 
-    // CREATE
     @PostMapping("/create")
     public ResponseEntity<RateDto> createRate(@Valid @RequestBody RateDto rateDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -39,7 +38,6 @@ public class RateController {
         }
     }
 
-    // READ
     @GetMapping("/all")
     public ResponseEntity<List<RateDto>> getAllRates() {
         List<RateDto> rateDtoList = rateService.getAllRates();
@@ -52,7 +50,6 @@ public class RateController {
         return ResponseEntity.ok(rateDto);
     }
 
-    // UPDATE
     @PostMapping("/update/id/{rateId}")
     public ResponseEntity<RateDto> updateRateById(@PathVariable Long rateId, @Valid @RequestBody RateDto rateDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -65,7 +62,6 @@ public class RateController {
         }
     }
 
-    // DELETE
     @DeleteMapping("/delete/all")
     public ResponseEntity<String> deleteAllRates() {
         rateService.deleteAllRates();

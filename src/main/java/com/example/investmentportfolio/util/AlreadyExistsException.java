@@ -9,5 +9,4 @@ public class AlreadyExistsException extends RuntimeException {
     public AlreadyExistsException(CustomError error) {
         this.error = error;
     }
-
 }

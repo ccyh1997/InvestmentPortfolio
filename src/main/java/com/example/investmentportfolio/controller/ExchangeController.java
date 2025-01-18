@@ -26,7 +26,6 @@ public class ExchangeController {
         this.exchangeService = exchangeService;
     }
 
-    // CREATE
     @PostMapping("/create")
     public ResponseEntity<ExchangeDto> createExchange(@Valid @RequestBody ExchangeDto exchangeDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -39,7 +38,6 @@ public class ExchangeController {
         }
     }
 
-    // READ
     @GetMapping("/all")
     public ResponseEntity<List<ExchangeDto>> getAllExchanges() {
         List<ExchangeDto> exchangeDtoList = exchangeService.getAllExchanges();
@@ -64,7 +62,6 @@ public class ExchangeController {
         return ResponseEntity.ok(exchangeDto);
     }
 
-    // UPDATE
     @PostMapping("/update/id/{exchangeId}")
     public ResponseEntity<ExchangeDto> updateExchangeById(@PathVariable Long exchangeId, @Valid @RequestBody ExchangeDto exchangeDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -89,7 +86,6 @@ public class ExchangeController {
         }
     }
 
-    // DELETE
     @DeleteMapping("/delete/all")
     public ResponseEntity<String> deleteAllExchanges() {
         exchangeService.deleteAllExchanges();

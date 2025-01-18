@@ -26,7 +26,6 @@ public class TransactionController {
         this.transactionService = transactionService;
     }
 
-    // CREATE
     @PostMapping("/create")
     public ResponseEntity<TransactionDto> createTransaction(@Valid @RequestBody TransactionDto transactionDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -39,7 +38,6 @@ public class TransactionController {
         }
     }
 
-    // READ
     @GetMapping("/all")
     public ResponseEntity<List<TransactionDto>> getAllTransactions() {
         List<TransactionDto> transactionDtoList = transactionService.getAllTransactions();
@@ -58,7 +56,6 @@ public class TransactionController {
         return ResponseEntity.ok(transactionDtoList);
     }
 
-    // UPDATE
     @PostMapping("/update/id/{transactionId}")
     public ResponseEntity<TransactionDto> updateTransactionById(@PathVariable Long transactionId, @Valid @RequestBody TransactionDto transactionDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -71,7 +68,6 @@ public class TransactionController {
         }
     }
 
-    // DELETE
     @DeleteMapping("/delete/all")
     public ResponseEntity<String> deleteAllTransactions() {
         transactionService.deleteAllTransactions();
