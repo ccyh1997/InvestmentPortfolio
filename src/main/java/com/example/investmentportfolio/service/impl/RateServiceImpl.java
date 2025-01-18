@@ -37,13 +37,10 @@ public class RateServiceImpl implements RateService {
     public RateDto createRate(RateDto rateDto) {
         Set<ConstraintViolation<RateDto>> violations = validator.validate(rateDto, CreateValidation.class);
         if (!violations.isEmpty()) {
-            List<String> errorMessages = violations.stream()
-                    .map(ConstraintViolation::getMessage)
-                    .toList();
+            List<String> errorMessages = violations.stream().map(ConstraintViolation::getMessage).toList();
             LOGGER.error(errorMessages);
             throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
-        }
-        else {
+        } else {
             Rate rate = rateMapper.convertToEntity(rateDto);
             if (rateRepository.existsByRateNameIgnoreCase(rate.getRateName())) {
                 List<String> errorMessages = Collections.singletonList("A rate with the same name already exists.");
@@ -60,9 +57,7 @@ public class RateServiceImpl implements RateService {
     public List<RateDto> getAllRates() {
         List<Rate> rates = rateRepository.findAll();
         if (!rates.isEmpty()) {
-            return rates.stream()
-                    .map(rateMapper::convertToDto)
-                    .toList();
+            return rates.stream().map(rateMapper::convertToDto).toList();
         } else {
             List<String> errorMessages = Collections.singletonList("No rate(s) found.");
             LOGGER.error(errorMessages);

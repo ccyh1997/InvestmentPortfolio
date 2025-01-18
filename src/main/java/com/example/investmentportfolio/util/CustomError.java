@@ -15,5 +15,3 @@ public class CustomError {
     private String errorCode;
     private List<String> errorMessages;
 }
-
-

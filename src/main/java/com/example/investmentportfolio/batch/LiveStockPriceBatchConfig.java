@@ -21,34 +21,21 @@ public class LiveStockPriceBatchConfig {
 
     @Bean
     public Step updateLivePricesStep(UpdateLivePricesTasklet updateLivePricesTasklet) {
-        return new StepBuilder("updateLivePricesStep", jobRepository)
-                .tasklet(updateLivePricesTasklet, transactionManager)
-                .allowStartIfComplete(true)
-                .build();
+        return new StepBuilder("updateLivePricesStep", jobRepository).tasklet(updateLivePricesTasklet, transactionManager).allowStartIfComplete(true).build();
     }
 
     @Bean
     public Step updateStatisticsStep(UpdateStatisticsTasklet updateStatisticsTasklet) {
-        return new StepBuilder("updateStatisticsStep", jobRepository)
-                .tasklet(updateStatisticsTasklet, transactionManager)
-                .allowStartIfComplete(true)
-                .build();
+        return new StepBuilder("updateStatisticsStep", jobRepository).tasklet(updateStatisticsTasklet, transactionManager).allowStartIfComplete(true).build();
     }
 
     @Bean
     public Step updateTotalProfitsStep(UpdateTotalProfitsTasklet updateTotalProfitsTasklet) {
-        return new StepBuilder("updateTotalProfitsStep", jobRepository)
-                .tasklet(updateTotalProfitsTasklet, transactionManager)
-                .allowStartIfComplete(true)
-                .build();
+        return new StepBuilder("updateTotalProfitsStep", jobRepository).tasklet(updateTotalProfitsTasklet, transactionManager).allowStartIfComplete(true).build();
     }
 
     @Bean
     public Job job(Step updateLivePricesStep, Step updateStatisticsStep, Step updateTotalProfitsStep) {
-        return new JobBuilder("updateJob", jobRepository)
-                .start(updateLivePricesStep)
-                .next(updateStatisticsStep)
-                .next(updateTotalProfitsStep)
-                .build();
+        return new JobBuilder("updateJob", jobRepository).start(updateLivePricesStep).next(updateStatisticsStep).next(updateTotalProfitsStep).build();
     }
 }

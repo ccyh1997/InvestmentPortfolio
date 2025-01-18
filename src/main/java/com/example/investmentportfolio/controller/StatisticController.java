@@ -30,9 +30,7 @@ public class StatisticController {
     @PostMapping("/create")
     public ResponseEntity<StatisticDto> createStatistic(@Valid @RequestBody StatisticDto statisticDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            List<String> errorMessages = bindingResult.getAllErrors().stream()
-                    .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                    .toList();
+            List<String> errorMessages = bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
             LOGGER.error(errorMessages);
             throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
@@ -64,9 +62,7 @@ public class StatisticController {
     @PostMapping("/update/id/{statisticId}")
     public ResponseEntity<StatisticDto> updateStatisticById(@PathVariable Long statisticId, @Valid @RequestBody StatisticDto statisticDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            List<String> errorMessages = bindingResult.getAllErrors().stream()
-                    .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                    .toList();
+            List<String> errorMessages = bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
             LOGGER.error(errorMessages);
             throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {

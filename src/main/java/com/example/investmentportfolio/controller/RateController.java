@@ -30,9 +30,7 @@ public class RateController {
     @PostMapping("/create")
     public ResponseEntity<RateDto> createRate(@Valid @RequestBody RateDto rateDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            List<String> errorMessages = bindingResult.getAllErrors().stream()
-                    .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                    .toList();
+            List<String> errorMessages = bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
             LOGGER.error(errorMessages);
             throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
@@ -58,9 +56,7 @@ public class RateController {
     @PostMapping("/update/id/{rateId}")
     public ResponseEntity<RateDto> updateRateById(@PathVariable Long rateId, @Valid @RequestBody RateDto rateDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            List<String> errorMessages = bindingResult.getAllErrors().stream()
-                    .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                    .toList();
+            List<String> errorMessages = bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
             LOGGER.error(errorMessages);
             throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {

@@ -30,9 +30,7 @@ public class ExchangeController {
     @PostMapping("/create")
     public ResponseEntity<ExchangeDto> createExchange(@Valid @RequestBody ExchangeDto exchangeDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            List<String> errorMessages = bindingResult.getAllErrors().stream()
-                    .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                            .toList();
+            List<String> errorMessages = bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
             LOGGER.error(errorMessages);
             throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
@@ -70,9 +68,7 @@ public class ExchangeController {
     @PostMapping("/update/id/{exchangeId}")
     public ResponseEntity<ExchangeDto> updateExchangeById(@PathVariable Long exchangeId, @Valid @RequestBody ExchangeDto exchangeDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            List<String> errorMessages = bindingResult.getAllErrors().stream()
-                    .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                    .toList();
+            List<String> errorMessages = bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
             LOGGER.error(errorMessages);
             throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
@@ -84,9 +80,7 @@ public class ExchangeController {
     @PostMapping("/update/suffix/{suffix}")
     public ResponseEntity<ExchangeDto> updateExchangeBySuffix(@PathVariable String suffix, @Valid @RequestBody ExchangeDto exchangeDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            List<String> errorMessages = bindingResult.getAllErrors().stream()
-                    .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                    .toList();
+            List<String> errorMessages = bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
             LOGGER.error(errorMessages);
             throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {

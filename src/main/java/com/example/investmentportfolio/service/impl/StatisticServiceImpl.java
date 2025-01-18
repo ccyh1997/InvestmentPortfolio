@@ -54,9 +54,7 @@ public class StatisticServiceImpl implements StatisticService {
     public StatisticDto createStatistic(StatisticDto statisticDto) {
         Set<ConstraintViolation<StatisticDto>> violations = validator.validate(statisticDto, CreateValidation.class);
         if (!violations.isEmpty()) {
-            List<String> errorMessages = violations.stream()
-                    .map(ConstraintViolation::getMessage)
-                    .toList();
+            List<String> errorMessages = violations.stream().map(ConstraintViolation::getMessage).toList();
             LOGGER.error(errorMessages);
             throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
@@ -98,17 +96,15 @@ public class StatisticServiceImpl implements StatisticService {
     public List<StatisticDto> getAllStatistics() {
         List<Statistic> statistics = statisticRepository.findAll();
         if (!statistics.isEmpty()) {
-            return statistics.stream()
-                    .map(statistic -> {
-                        Optional<User> optionalUser = userRepository.findById(statistic.getUserId());
-                        optionalUser.ifPresent(user -> statistic.setUsername(String.valueOf(user.getUsername())));
-                        Optional<Stock> optionalStock = stockRepository.findById(statistic.getStockId());
-                        optionalStock.ifPresent(stock -> statistic.setStockTicker(stock.getStockTicker()));
-                        Optional<String> optionalExchange = stockRepository.findExchangeByStockId(statistic.getStockId());
-                        optionalExchange.ifPresent(statistic::setExchange);
-                        return statisticMapper.convertToDto(statistic);
-                    })
-                    .toList();
+            return statistics.stream().map(statistic -> {
+                Optional<User> optionalUser = userRepository.findById(statistic.getUserId());
+                optionalUser.ifPresent(user -> statistic.setUsername(String.valueOf(user.getUsername())));
+                Optional<Stock> optionalStock = stockRepository.findById(statistic.getStockId());
+                optionalStock.ifPresent(stock -> statistic.setStockTicker(stock.getStockTicker()));
+                Optional<String> optionalExchange = stockRepository.findExchangeByStockId(statistic.getStockId());
+                optionalExchange.ifPresent(statistic::setExchange);
+                return statisticMapper.convertToDto(statistic);
+            }).toList();
         } else {
             List<String> errorMessages = Collections.singletonList("No statistic(s) found.");
             LOGGER.error(errorMessages);
@@ -139,17 +135,15 @@ public class StatisticServiceImpl implements StatisticService {
     public List<StatisticDto> getStatisticsByUserId(Long userId) {
         List<Statistic> statistics = statisticRepository.findByUserId(userId);
         if (!statistics.isEmpty()) {
-            return statistics.stream()
-                    .map(statistic -> {
-                        Optional<User> optionalUser = userRepository.findById(statistic.getUserId());
-                        optionalUser.ifPresent(user -> statistic.setUsername(String.valueOf(user.getUsername())));
-                        Optional<Stock> optionalStock = stockRepository.findById(statistic.getStockId());
-                        optionalStock.ifPresent(stock -> statistic.setStockTicker(stock.getStockTicker()));
-                        Optional<String> optionalExchange = stockRepository.findExchangeByStockId(statistic.getStockId());
-                        optionalExchange.ifPresent(statistic::setExchange);
-                        return statisticMapper.convertToDto(statistic);
-                    })
-                    .toList();
+            return statistics.stream().map(statistic -> {
+                Optional<User> optionalUser = userRepository.findById(statistic.getUserId());
+                optionalUser.ifPresent(user -> statistic.setUsername(String.valueOf(user.getUsername())));
+                Optional<Stock> optionalStock = stockRepository.findById(statistic.getStockId());
+                optionalStock.ifPresent(stock -> statistic.setStockTicker(stock.getStockTicker()));
+                Optional<String> optionalExchange = stockRepository.findExchangeByStockId(statistic.getStockId());
+                optionalExchange.ifPresent(statistic::setExchange);
+                return statisticMapper.convertToDto(statistic);
+            }).toList();
         } else {
             List<String> errorMessages = Collections.singletonList(String.format("No statistics found for user id: %d", userId));
             LOGGER.error(errorMessages);
@@ -236,12 +230,10 @@ public class StatisticServiceImpl implements StatisticService {
     public BigDecimal calculateTotalUnitsOwnedOnGivenDate(Long userId, Long stockId, String date) {
         List<Transaction> transactions = transactionRepository.findByUserIdAndStockIdAndDate(userId, stockId, date);
         String stockTicker = stockRepository.findStockTickerByStockId(stockId);
-        BigDecimal totalUnits = transactions.stream()
-                .map(transaction -> {
-                    BigDecimal units = new BigDecimal(transaction.getUnits());
-                    return Objects.equals(transaction.getTransactionType().trim(), "Buy") ? units : units.negate();
-                })
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalUnits = transactions.stream().map(transaction -> {
+            BigDecimal units = new BigDecimal(transaction.getUnits());
+            return Objects.equals(transaction.getTransactionType().trim(), "Buy") ? units : units.negate();
+        }).reduce(BigDecimal.ZERO, BigDecimal::add);
         LOGGER.info("Total Units for {}: {}", stockTicker, totalUnits);
         return totalUnits;
     }
@@ -371,9 +363,7 @@ public class StatisticServiceImpl implements StatisticService {
                 List<String> errorMessages = Collections.singletonList(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
                 LOGGER.info(errorMessages);
             }
-            totalCost = stockIds.stream()
-                    .map(stockId -> statisticRepository.getCost(userId, stockId))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            totalCost = stockIds.stream().map(stockId -> statisticRepository.getCost(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
             LOGGER.info("Total Cost: {} ${}", displayCurrency, totalCost.stripTrailingZeros());
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
@@ -454,9 +444,7 @@ public class StatisticServiceImpl implements StatisticService {
                 List<String> errorMessages = Collections.singletonList(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
                 LOGGER.info(errorMessages);
             }
-            totalValue = stockIds.stream()
-                    .map(stockId -> statisticRepository.getValue(userId, stockId))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            totalValue = stockIds.stream().map(stockId -> statisticRepository.getValue(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
             LOGGER.info("Total Value: {} ${}", displayCurrency, totalValue.stripTrailingZeros());
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
@@ -588,9 +576,7 @@ public class StatisticServiceImpl implements StatisticService {
                 List<String> errorMessages = Collections.singletonList(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
                 LOGGER.info(errorMessages);
             }
-            totalRealizedProfits = stockIds.stream()
-                    .map(stockId -> statisticRepository.getRealizedProfits(userId, stockId))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            totalRealizedProfits = stockIds.stream().map(stockId -> statisticRepository.getRealizedProfits(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
             LOGGER.info("Total Realized Profits: {} ${}", displayCurrency, totalRealizedProfits.stripTrailingZeros());
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
@@ -681,9 +667,7 @@ public class StatisticServiceImpl implements StatisticService {
                 List<String> errorMessages = Collections.singletonList(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
                 LOGGER.info(errorMessages);
             }
-            totalUnrealizedProfits = stockIds.stream()
-                    .map(stockId -> statisticRepository.getUnrealizedProfits(userId, stockId))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            totalUnrealizedProfits = stockIds.stream().map(stockId -> statisticRepository.getUnrealizedProfits(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
             LOGGER.info("Total Unrealized Profits: {} ${}", displayCurrency, totalUnrealizedProfits.stripTrailingZeros());
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
@@ -700,15 +684,13 @@ public class StatisticServiceImpl implements StatisticService {
             String earliestDate = transactionRepository.getEarliestTransactionDate(userId, stockId);
             String baseCurrency = stock.get().getBaseCurrency();
             List<Dividend> dividends = dividendRepository.getRelevantDividends(stockId, earliestDate);
-            BigDecimal dividendsEarned = dividends.stream()
-                    .map(dividend -> {
-                        String exDate = dividend.getExDate();
-                        BigDecimal totalUnits = calculateTotalUnitsOwnedOnGivenDate(userId, stockId, exDate);
-                        BigDecimal dividendsEarnedExDate = totalUnits.multiply(new BigDecimal(dividend.getPayout()));
-                        LOGGER.info(String.format("Dividends Earned on ex Date %s: %s $%s", exDate, baseCurrency, dividendsEarnedExDate.stripTrailingZeros()));
-                        return dividendsEarnedExDate;
-                    })
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal dividendsEarned = dividends.stream().map(dividend -> {
+                String exDate = dividend.getExDate();
+                BigDecimal totalUnits = calculateTotalUnitsOwnedOnGivenDate(userId, stockId, exDate);
+                BigDecimal dividendsEarnedExDate = totalUnits.multiply(new BigDecimal(dividend.getPayout()));
+                LOGGER.info(String.format("Dividends Earned on ex Date %s: %s $%s", exDate, baseCurrency, dividendsEarnedExDate.stripTrailingZeros()));
+                return dividendsEarnedExDate;
+            }).reduce(BigDecimal.ZERO, BigDecimal::add);
             LOGGER.info(String.format("Dividends Earned: %s $%.2f", baseCurrency, dividendsEarned.stripTrailingZeros()));
             LOGGER.info("");
             return dividendsEarned;
@@ -772,9 +754,7 @@ public class StatisticServiceImpl implements StatisticService {
                 List<String> errorMessages = Collections.singletonList(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
                 LOGGER.info(errorMessages);
             }
-            totalDividends = stockIds.stream()
-                    .map(stockId -> statisticRepository.getDividends(userId, stockId))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            totalDividends = stockIds.stream().map(stockId -> statisticRepository.getDividends(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
             LOGGER.info("Total Dividends Earned: {} ${}", displayCurrency, totalDividends.stripTrailingZeros());
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
@@ -860,9 +840,7 @@ public class StatisticServiceImpl implements StatisticService {
                 List<String> errorMessages = Collections.singletonList(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
                 LOGGER.info(errorMessages);
             }
-            overallProfits = stockIds.stream()
-                    .map(stockId -> statisticRepository.getTotalProfits(userId, stockId))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            overallProfits = stockIds.stream().map(stockId -> statisticRepository.getTotalProfits(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
             LOGGER.info("Total Profits: {} ${}", displayCurrency, overallProfits.stripTrailingZeros());
             LOGGER.info(Constants.ASTERISK);
         } else {

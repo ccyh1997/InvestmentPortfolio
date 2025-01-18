@@ -13,9 +13,11 @@ public interface RateMapper {
     @Mapping(target = "rateName", source = "rateName", qualifiedByName = "toUpperCase")
     @Mapping(target = "rate", source = "rate", qualifiedByName = "trimTrailingZeros")
     RateDto convertToDto(Rate rate);
+
     @Mapping(target = "rateName", source = "rateName", qualifiedByName = "toUpperCase")
     @Mapping(target = "rate", source = "rate", qualifiedByName = "trimTrailingZeros")
     Rate convertToEntity(RateDto rateDto);
+
     @Mapping(target = "rateName", source = "rateName", qualifiedByName = "toUpperCase")
     @Mapping(target = "rate", source = "rate", qualifiedByName = "trimTrailingZeros")
     Rate updateEntityWithDto(RateDto rateDto, @MappingTarget Rate rate);

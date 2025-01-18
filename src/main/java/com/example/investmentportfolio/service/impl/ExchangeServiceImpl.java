@@ -38,13 +38,10 @@ public class ExchangeServiceImpl implements ExchangeService {
     public ExchangeDto createExchange(ExchangeDto exchangeDto) {
         Set<ConstraintViolation<ExchangeDto>> violations = validator.validate(exchangeDto, CreateValidation.class);
         if (!violations.isEmpty()) {
-            List<String> errorMessages = violations.stream()
-                    .map(ConstraintViolation::getMessage)
-                            .toList();
+            List<String> errorMessages = violations.stream().map(ConstraintViolation::getMessage).toList();
             LOGGER.error(errorMessages);
             throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
-        }
-        else {
+        } else {
             Exchange exchange = exchangeMapper.convertToEntity(exchangeDto);
             if (exchangeRepository.existsByExchangeOrSuffixIgnoreCase(exchange.getExchange(), exchange.getSuffix())) {
                 List<String> errorMessages = Collections.singletonList("An exchange with the same name or suffix already exists.");
@@ -61,9 +58,7 @@ public class ExchangeServiceImpl implements ExchangeService {
     public List<ExchangeDto> getAllExchanges() {
         List<Exchange> exchanges = exchangeRepository.findAll();
         if (!exchanges.isEmpty()) {
-            return exchanges.stream()
-                    .map(exchangeMapper::convertToDto)
-                    .toList();
+            return exchanges.stream().map(exchangeMapper::convertToDto).toList();
         } else {
             List<String> errorMessages = Collections.singletonList("No exchange(s) found.");
             LOGGER.error(errorMessages);
@@ -87,9 +82,7 @@ public class ExchangeServiceImpl implements ExchangeService {
     public List<ExchangeDto> getExchangesByCountryCode(String countryCode) {
         List<Exchange> exchanges = exchangeRepository.findByCountryCodeIgnoreCase(countryCode);
         if (!exchanges.isEmpty()) {
-            return exchanges.stream()
-                    .map(exchangeMapper::convertToDto)
-                    .toList();
+            return exchanges.stream().map(exchangeMapper::convertToDto).toList();
         } else {
             List<String> errorMessages = Collections.singletonList(String.format("No exchange(s) found with country code: %s", countryCode));
             LOGGER.error(errorMessages);
@@ -168,8 +161,8 @@ public class ExchangeServiceImpl implements ExchangeService {
     public ExchangeDto deleteExchangeBySuffix(String suffix) {
         Optional<Exchange> optionalExchange = exchangeRepository.findBySuffixIgnoreCase(suffix);
         if (optionalExchange.isPresent()) {
-             exchangeRepository.deleteBySuffixIgnoreCase(suffix);
-             return exchangeMapper.convertToDto(optionalExchange.get());
+            exchangeRepository.deleteBySuffixIgnoreCase(suffix);
+            return exchangeMapper.convertToDto(optionalExchange.get());
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_SUFFIX, suffix));
             LOGGER.error(errorMessages);

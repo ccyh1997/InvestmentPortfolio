@@ -9,5 +9,6 @@ import java.util.Optional;
 @Repository
 public interface RateRepository extends JpaRepository<Rate, Long> {
     Optional<Rate> findByRateNameIgnoreCase(String rate);
+
     boolean existsByRateNameIgnoreCase(String rateName);
 }

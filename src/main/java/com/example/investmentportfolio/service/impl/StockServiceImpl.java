@@ -50,13 +50,10 @@ public class StockServiceImpl implements StockService {
     public StockDto createStock(StockDto stockDto) {
         Set<ConstraintViolation<StockDto>> violations = validator.validate(stockDto, CreateValidation.class);
         if (!violations.isEmpty()) {
-            List<String> errorMessages = violations.stream()
-                    .map(ConstraintViolation::getMessage)
-                    .toList();
+            List<String> errorMessages = violations.stream().map(ConstraintViolation::getMessage).toList();
             LOGGER.error(errorMessages);
             throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
-        }
-        else {
+        } else {
             Stock stock = stockMapper.convertToEntity(stockDto);
             Optional<Long> optionalId = exchangeRepository.findIdByExchange(stockDto.getExchange().toUpperCase());
             if (optionalId.isPresent()) {
@@ -81,13 +78,11 @@ public class StockServiceImpl implements StockService {
     public List<StockDto> getAllStocks() {
         List<Stock> stocks = stockRepository.findAll();
         if (!stocks.isEmpty()) {
-            return stocks.stream()
-                    .map(stock -> {
-                        Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
-                        optionalExchange.ifPresent(exchange -> stock.setExchange(String.valueOf(exchange.getExchange())));
-                        return stockMapper.convertToDto(stock);
-                    })
-                    .toList();
+            return stocks.stream().map(stock -> {
+                Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
+                optionalExchange.ifPresent(exchange -> stock.setExchange(String.valueOf(exchange.getExchange())));
+                return stockMapper.convertToDto(stock);
+            }).toList();
         } else {
             List<String> errorMessages = Collections.singletonList("No stock(s) found.");
             LOGGER.error(errorMessages);
@@ -129,13 +124,11 @@ public class StockServiceImpl implements StockService {
     public List<StockDto> getStocksByType(String stockType) {
         List<Stock> stocks = stockRepository.findByStockTypeIgnoreCase(stockType);
         if (!stocks.isEmpty()) {
-            return stocks.stream()
-                    .map(stock -> {
-                        Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
-                        optionalExchange.ifPresent(exchange -> stock.setExchange(String.valueOf(exchange.getExchange())));
-                        return stockMapper.convertToDto(stock);
-                    })
-                    .toList();
+            return stocks.stream().map(stock -> {
+                Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
+                optionalExchange.ifPresent(exchange -> stock.setExchange(String.valueOf(exchange.getExchange())));
+                return stockMapper.convertToDto(stock);
+            }).toList();
         } else {
             List<String> errorMessages = Collections.singletonList(String.format("No stock(s) found with type: %s", stockType));
             LOGGER.error(errorMessages);
@@ -147,13 +140,11 @@ public class StockServiceImpl implements StockService {
     public List<StockDto> getStocksByExchangeId(Long exchangeId) {
         List<Stock> stocks = stockRepository.findByExchangeId(exchangeId);
         if (!stocks.isEmpty()) {
-            return stocks.stream()
-                    .map(stock -> {
-                        Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
-                        optionalExchange.ifPresent(ex -> stock.setExchange(String.valueOf(ex.getExchange())));
-                        return stockMapper.convertToDto(stock);
-                    })
-                    .toList();
+            return stocks.stream().map(stock -> {
+                Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
+                optionalExchange.ifPresent(ex -> stock.setExchange(String.valueOf(ex.getExchange())));
+                return stockMapper.convertToDto(stock);
+            }).toList();
         } else {
             List<String> errorMessages = Collections.singletonList(String.format("No stock(s) found from exchange id: %d", exchangeId));
             LOGGER.error(errorMessages);
@@ -165,13 +156,11 @@ public class StockServiceImpl implements StockService {
     public List<StockDto> getStocksByDividendIndicator(String divInd) {
         List<Stock> stocks = stockRepository.findByDivInd(divInd);
         if (!stocks.isEmpty()) {
-            return stocks.stream()
-                    .map(stock -> {
-                        Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
-                        optionalExchange.ifPresent(ex -> stock.setExchange(String.valueOf(ex.getExchange())));
-                        return stockMapper.convertToDto(stock);
-                    })
-                    .toList();
+            return stocks.stream().map(stock -> {
+                Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
+                optionalExchange.ifPresent(ex -> stock.setExchange(String.valueOf(ex.getExchange())));
+                return stockMapper.convertToDto(stock);
+            }).toList();
         } else {
             List<String> errorMessages = Collections.singletonList(String.format("No stock(s) found with dividend indicator: %s", divInd));
             LOGGER.error(errorMessages);
@@ -183,13 +172,11 @@ public class StockServiceImpl implements StockService {
     public List<StockDto> getStocksByDelistIndicator(String delistInd) {
         List<Stock> stocks = stockRepository.findByDelistInd(delistInd);
         if (!stocks.isEmpty()) {
-            return stocks.stream()
-                    .map(stock -> {
-                        Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
-                        optionalExchange.ifPresent(ex -> stock.setExchange(String.valueOf(ex.getExchange())));
-                        return stockMapper.convertToDto(stock);
-                    })
-                    .toList();
+            return stocks.stream().map(stock -> {
+                Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
+                optionalExchange.ifPresent(ex -> stock.setExchange(String.valueOf(ex.getExchange())));
+                return stockMapper.convertToDto(stock);
+            }).toList();
         } else {
             List<String> errorMessages = Collections.singletonList(String.format("No stock(s) found with delist indicator: %s", delistInd));
             LOGGER.error(errorMessages);

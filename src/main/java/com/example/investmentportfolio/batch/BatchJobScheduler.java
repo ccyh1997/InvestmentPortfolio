@@ -28,7 +28,7 @@ public class BatchJobScheduler {
         this.updateJob = updateJob;
     }
 
-    @Scheduled(cron = "30 14 4 * * *") // Executes at 12:00 AM every day
+    @Scheduled(cron = "30 28 23 * * *")
     public void runBatchJob() {
         try {
             jobLauncher.run(updateJob, new JobParameters());

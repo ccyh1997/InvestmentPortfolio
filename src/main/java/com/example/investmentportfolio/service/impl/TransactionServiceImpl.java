@@ -48,13 +48,10 @@ public class TransactionServiceImpl implements TransactionService {
     public TransactionDto createTransaction(TransactionDto transactionDto) {
         Set<ConstraintViolation<TransactionDto>> violations = validator.validate(transactionDto, CreateValidation.class);
         if (!violations.isEmpty()) {
-            List<String> errorMessages = violations.stream()
-                    .map(ConstraintViolation::getMessage)
-                    .toList();
+            List<String> errorMessages = violations.stream().map(ConstraintViolation::getMessage).toList();
             LOGGER.error(errorMessages);
             throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
-        }
-        else {
+        } else {
             Transaction transaction = transactionMapper.convertToEntity(transactionDto);
             Optional<Long> optionalUserId = userRepository.findIdByUsername(transactionDto.getUsername().toUpperCase());
             if (optionalUserId.isPresent()) {
@@ -87,17 +84,15 @@ public class TransactionServiceImpl implements TransactionService {
     public List<TransactionDto> getAllTransactions() {
         List<Transaction> transactions = transactionRepository.findAll();
         if (!transactions.isEmpty()) {
-            return transactions.stream()
-                    .map(transaction -> {
-                        Optional<User> optionalUser = userRepository.findById(transaction.getUserId());
-                        optionalUser.ifPresent(user -> transaction.setUsername(String.valueOf(user.getUsername())));
-                        Optional<Stock> optionalStock = stockRepository.findById(transaction.getStockId());
-                        optionalStock.ifPresent(stock -> transaction.setStockTicker(stock.getStockTicker()));
-                        Optional<String> optionalExchange = stockRepository.findExchangeByStockId(transaction.getStockId());
-                        optionalExchange.ifPresent(transaction::setExchange);
-                        return transactionMapper.convertToDto(transaction);
-                    })
-                    .toList();
+            return transactions.stream().map(transaction -> {
+                Optional<User> optionalUser = userRepository.findById(transaction.getUserId());
+                optionalUser.ifPresent(user -> transaction.setUsername(String.valueOf(user.getUsername())));
+                Optional<Stock> optionalStock = stockRepository.findById(transaction.getStockId());
+                optionalStock.ifPresent(stock -> transaction.setStockTicker(stock.getStockTicker()));
+                Optional<String> optionalExchange = stockRepository.findExchangeByStockId(transaction.getStockId());
+                optionalExchange.ifPresent(transaction::setExchange);
+                return transactionMapper.convertToDto(transaction);
+            }).toList();
         } else {
             List<String> errorMessages = Collections.singletonList("No transaction(s) found.");
             LOGGER.error(errorMessages);
@@ -128,17 +123,15 @@ public class TransactionServiceImpl implements TransactionService {
     public List<TransactionDto> getTransactionsByUserId(Long userId) {
         List<Transaction> transactions = transactionRepository.findByUserId(userId);
         if (!transactions.isEmpty()) {
-            return transactions.stream()
-                    .map(transaction -> {
-                        Optional<User> optionalUser = userRepository.findById(transaction.getUserId());
-                        optionalUser.ifPresent(user -> transaction.setUsername(String.valueOf(user.getUsername())));
-                        Optional<Stock> optionalStock = stockRepository.findById(transaction.getStockId());
-                        optionalStock.ifPresent(stock -> transaction.setStockTicker(stock.getStockTicker()));
-                        Optional<String> optionalExchange = stockRepository.findExchangeByStockId(transaction.getStockId());
-                        optionalExchange.ifPresent(transaction::setExchange);
-                        return transactionMapper.convertToDto(transaction);
-                    })
-                    .toList();
+            return transactions.stream().map(transaction -> {
+                Optional<User> optionalUser = userRepository.findById(transaction.getUserId());
+                optionalUser.ifPresent(user -> transaction.setUsername(String.valueOf(user.getUsername())));
+                Optional<Stock> optionalStock = stockRepository.findById(transaction.getStockId());
+                optionalStock.ifPresent(stock -> transaction.setStockTicker(stock.getStockTicker()));
+                Optional<String> optionalExchange = stockRepository.findExchangeByStockId(transaction.getStockId());
+                optionalExchange.ifPresent(transaction::setExchange);
+                return transactionMapper.convertToDto(transaction);
+            }).toList();
         } else {
             List<String> errorMessages = Collections.singletonList(String.format("No transactions found for user id: %d", userId));
             LOGGER.error(errorMessages);

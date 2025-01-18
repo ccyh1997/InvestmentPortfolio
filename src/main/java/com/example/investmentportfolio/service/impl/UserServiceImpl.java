@@ -38,13 +38,10 @@ public class UserServiceImpl implements UserService {
     public UserDto createUser(UserDto userDto) {
         Set<ConstraintViolation<UserDto>> violations = validator.validate(userDto, CreateValidation.class);
         if (!violations.isEmpty()) {
-            List<String> errorMessages = violations.stream()
-                    .map(ConstraintViolation::getMessage)
-                    .toList();
+            List<String> errorMessages = violations.stream().map(ConstraintViolation::getMessage).toList();
             LOGGER.error(errorMessages);
             throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
-        }
-        else {
+        } else {
             User user = userMapper.convertToEntity(userDto);
             if (userRepository.existsByUsernameIgnoreCase(user.getUsername())) {
                 List<String> errorMessages = Collections.singletonList("An user with the same username already exists.");
@@ -61,9 +58,7 @@ public class UserServiceImpl implements UserService {
     public List<UserDto> getAllUsers() {
         List<User> users = userRepository.findAll();
         if (!users.isEmpty()) {
-            return users.stream()
-                    .map(userMapper::convertToDto)
-                    .toList();
+            return users.stream().map(userMapper::convertToDto).toList();
         } else {
             List<String> errorMessages = Collections.singletonList("No user(s) found.");
             LOGGER.error(errorMessages);
