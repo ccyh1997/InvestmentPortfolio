@@ -24,10 +24,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import static com.example.investmentportfolio.util.Constants.NO_TRANSACTION_FOUND_WITH_ID;
+
 @Service
 public class TransactionServiceImpl implements TransactionService {
     private static final Logger LOGGER = LogManager.getLogger(TransactionServiceImpl.class);
-    public static final String NO_TRANSACTION_FOUND_WITH_ID = "No transaction found with id: %d";
     private final TransactionRepository transactionRepository;
     private final StockRepository stockRepository;
     private final ExchangeRepository exchangeRepository;
@@ -50,7 +51,7 @@ public class TransactionServiceImpl implements TransactionService {
         if (!violations.isEmpty()) {
             List<String> errorMessages = violations.stream().map(ConstraintViolation::getMessage).toList();
             LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
             Transaction transaction = transactionMapper.convertToEntity(transactionDto);
             Optional<Long> optionalUserId = userRepository.findIdByUsername(transactionDto.getUsername().toUpperCase());
@@ -59,13 +60,13 @@ public class TransactionServiceImpl implements TransactionService {
             } else {
                 List<String> errorMessages = Collections.singletonList(String.format("No user found with username: %s", transactionDto.getUsername()));
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
             Optional<Long> optionalExchangeId = exchangeRepository.findIdByExchange(transactionDto.getExchange().toUpperCase());
             if (optionalExchangeId.isEmpty()) {
                 List<String> errorMessages = Collections.singletonList(String.format("No exchange found with name: %s", transactionDto.getExchange()));
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
             Optional<Long> optionalStockId = stockRepository.findIdByTickerAndExchangeId(transactionDto.getStockTicker().toUpperCase(), optionalExchangeId.get());
             if (optionalStockId.isPresent()) {
@@ -73,7 +74,7 @@ public class TransactionServiceImpl implements TransactionService {
             } else {
                 List<String> errorMessages = Collections.singletonList(String.format("Stock ticker %s cannot be found in exchange: %s", transactionDto.getStockTicker(), transactionDto.getExchange()));
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
             transactionRepository.save(transaction);
             return transactionMapper.convertToDto(transaction);
@@ -96,7 +97,7 @@ public class TransactionServiceImpl implements TransactionService {
         } else {
             List<String> errorMessages = Collections.singletonList("No transaction(s) found.");
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -115,7 +116,7 @@ public class TransactionServiceImpl implements TransactionService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_TRANSACTION_FOUND_WITH_ID, transactionId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -135,7 +136,7 @@ public class TransactionServiceImpl implements TransactionService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format("No transactions found for user id: %d", userId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -150,13 +151,13 @@ public class TransactionServiceImpl implements TransactionService {
             } else {
                 List<String> errorMessages = Collections.singletonList(String.format("No user found with username: %s", transactionDto.getUsername()));
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
             Optional<Long> optionalExchangeId = exchangeRepository.findIdByExchange(transactionDto.getExchange().toUpperCase());
             if (optionalExchangeId.isEmpty()) {
                 List<String> errorMessages = Collections.singletonList(String.format("No exchange found with name: %s", transactionDto.getExchange()));
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
             Optional<Long> optionalStockId = stockRepository.findIdByTickerAndExchangeId(transactionDto.getStockTicker().toUpperCase(), optionalExchangeId.get());
             if (optionalStockId.isPresent()) {
@@ -164,14 +165,14 @@ public class TransactionServiceImpl implements TransactionService {
             } else {
                 List<String> errorMessages = Collections.singletonList(String.format("Stock ticker %s cannot be found in exchange: %s", transactionDto.getStockTicker(), transactionDto.getExchange()));
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
             transactionRepository.save(updatedTransaction);
             return transactionMapper.convertToDto(updatedTransaction);
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_TRANSACTION_FOUND_WITH_ID, transactionId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -184,7 +185,7 @@ public class TransactionServiceImpl implements TransactionService {
         } else {
             List<String> errorMessages = Collections.singletonList("No transaction(s) found.");
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -197,7 +198,7 @@ public class TransactionServiceImpl implements TransactionService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_TRANSACTION_FOUND_WITH_ID, transactionId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 }

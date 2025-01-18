@@ -22,15 +22,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import static com.example.investmentportfolio.util.Constants.*;
+
 @Service
 public class StatisticServiceImpl implements StatisticService {
     private static final Logger LOGGER = LogManager.getLogger(StatisticServiceImpl.class);
-    public static final String STOCK_TICKER = "Stock Ticker: %s";
-    public static final String INVALID_STOCK = "Invalid stock";
-    public static final String INVALID_RATE = "Invalid rate: %s";
-    public static final String NO_USER_FOUND_WITH_ID = "No user found with id: %d";
-    public static final String NO_STATISTIC_FOUND_WITH_ID = "No statistic found with id: %d";
-    public static final String NO_STOCKS_FOUND_FOR_USER_WITH_ID = "No stocks found for user with id: %d";
     private final StatisticRepository statisticRepository;
     private final StockRepository stockRepository;
     private final ExchangeRepository exchangeRepository;
@@ -59,7 +55,7 @@ public class StatisticServiceImpl implements StatisticService {
         if (!violations.isEmpty()) {
             List<String> errorMessages = violations.stream().map(ConstraintViolation::getMessage).toList();
             LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
             Statistic statistic = statisticMapper.convertToEntity(statisticDto);
             Optional<Long> optionalUserId = userRepository.findIdByUsername(statisticDto.getUsername().toUpperCase());
@@ -68,13 +64,13 @@ public class StatisticServiceImpl implements StatisticService {
             } else {
                 List<String> errorMessages = Collections.singletonList(String.format("No user found with username: %s", statisticDto.getUsername()));
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
             Optional<Long> optionalExchangeId = exchangeRepository.findIdByExchange(statisticDto.getExchange().toUpperCase());
             if (optionalExchangeId.isEmpty()) {
                 List<String> errorMessages = Collections.singletonList(String.format("No exchange found with name: %s", statisticDto.getExchange()));
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
             Optional<Long> optionalStockId = stockRepository.findIdByTickerAndExchangeId(statisticDto.getStockTicker().toUpperCase(), optionalExchangeId.get());
             if (optionalStockId.isPresent()) {
@@ -82,12 +78,12 @@ public class StatisticServiceImpl implements StatisticService {
             } else {
                 List<String> errorMessages = Collections.singletonList(String.format("Stock ticker %s cannot be found in exchange: %s", statisticDto.getStockTicker(), statisticDto.getExchange()));
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
             if (statisticRepository.existsByUserIdAndStockId(statistic.getUserId(), statistic.getStockId())) {
                 List<String> errorMessages = Collections.singletonList("A statistic for this user with the same ticker and exchange already exists.");
                 LOGGER.error(errorMessages);
-                throw new AlreadyExistsException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+                throw new AlreadyExistsException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
             } else {
                 statisticRepository.save(statistic);
                 return statisticMapper.convertToDto(statistic);
@@ -111,7 +107,7 @@ public class StatisticServiceImpl implements StatisticService {
         } else {
             List<String> errorMessages = Collections.singletonList("No statistic(s) found.");
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -130,7 +126,7 @@ public class StatisticServiceImpl implements StatisticService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_STATISTIC_FOUND_WITH_ID, statisticId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -150,7 +146,7 @@ public class StatisticServiceImpl implements StatisticService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format("No statistics found for user id: %d", userId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -165,13 +161,13 @@ public class StatisticServiceImpl implements StatisticService {
             } else {
                 List<String> errorMessages = Collections.singletonList(String.format("No user found with username: %s", statisticDto.getUsername()));
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
             Optional<Long> optionalExchangeId = exchangeRepository.findIdByExchange(statisticDto.getExchange().toUpperCase());
             if (optionalExchangeId.isEmpty()) {
                 List<String> errorMessages = Collections.singletonList(String.format("No exchange found with name: %s", statisticDto.getExchange()));
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
             Optional<Long> optionalStockId = stockRepository.findIdByTickerAndExchangeId(statisticDto.getStockTicker().toUpperCase(), optionalExchangeId.get());
             if (optionalStockId.isPresent()) {
@@ -179,14 +175,14 @@ public class StatisticServiceImpl implements StatisticService {
             } else {
                 List<String> errorMessages = Collections.singletonList(String.format("Stock ticker %s cannot be found in exchange: %s", statisticDto.getStockTicker(), statisticDto.getExchange()));
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
             statisticRepository.save(updatedStatistic);
             return statisticMapper.convertToDto(updatedStatistic);
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_STATISTIC_FOUND_WITH_ID, statisticId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -199,7 +195,7 @@ public class StatisticServiceImpl implements StatisticService {
         } else {
             List<String> errorMessages = Collections.singletonList("No statistic(s) found.");
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -212,7 +208,7 @@ public class StatisticServiceImpl implements StatisticService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_STATISTIC_FOUND_WITH_ID, statisticId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -225,7 +221,7 @@ public class StatisticServiceImpl implements StatisticService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format("No statistics found for user id: %d", userId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -261,7 +257,7 @@ public class StatisticServiceImpl implements StatisticService {
         return userRepository.findById(userId).map(User::getDisplayCurrency).orElseThrow(() -> {
             List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
             LOGGER.error(errorMessages);
-            return new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            return new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         });
     }
 
@@ -289,14 +285,14 @@ public class StatisticServiceImpl implements StatisticService {
         if (stock.isEmpty()) {
             List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
         LOGGER.info("Stock Ticker: {}", stock.get().getStockTicker());
         List<Transaction> transactions = transactionRepository.getBuyTransactionsByStock(userId, stockId);
         if (transactions.isEmpty()) {
             List<String> errorMessages = Collections.singletonList(String.format("No buy transactions found with ticker %s for user id: %d", stock.get().getStockTicker(), userId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
         BigDecimal totalCost = transactions.stream().map(transaction -> calculateTransactionCost(transaction, displayCurrency)).reduce(BigDecimal.ZERO, BigDecimal::add);
         LOGGER.info("Cost: {} ${}", displayCurrency, totalCost.stripTrailingZeros());
@@ -321,7 +317,7 @@ public class StatisticServiceImpl implements StatisticService {
         return rateRepository.findByRateNameIgnoreCase(rateName).map(rate -> new BigDecimal(rate.getRate())).orElseThrow(() -> {
             List<String> errorMessages = Collections.singletonList(String.format(INVALID_RATE, rateName));
             LOGGER.error(errorMessages);
-            return new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            return new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         });
     }
 
@@ -356,7 +352,7 @@ public class StatisticServiceImpl implements StatisticService {
             } else {
                 List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
         }
     }
@@ -393,7 +389,7 @@ public class StatisticServiceImpl implements StatisticService {
         return stockRepository.findById(stockId).orElseThrow(() -> {
             List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
             LOGGER.error(errorMessages);
-            return new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            return new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         });
     }
 
@@ -428,7 +424,7 @@ public class StatisticServiceImpl implements StatisticService {
             } else {
                 List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
         }
     }
@@ -456,7 +452,7 @@ public class StatisticServiceImpl implements StatisticService {
             } else {
                 List<String> errorMessages = Collections.singletonList(String.format(INVALID_RATE, rateName));
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
         }
         return BigDecimal.ONE;
@@ -497,7 +493,7 @@ public class StatisticServiceImpl implements StatisticService {
             if (buyTransactions.isEmpty()) {
                 List<String> errorMessages = Collections.singletonList("There should be a buy transaction before a sell transaction.");
                 LOGGER.error(errorMessages);
-                throw new GeneralException(new CustomError(ErrorConstants.INTERNAL_SERVER_ERROR_ERROR_CODE, errorMessages));
+                throw new GeneralException(new CustomError(Constants.INTERNAL_SERVER_ERROR_ERROR_CODE, errorMessages));
             } else {
                 BigDecimal realizedProfits = calculateRealizedProfitsForSellTransaction(buyTransactions, unitsSold, unitSellingPrice, sellingFees);
                 totalStockRealizedProfits = totalStockRealizedProfits.add(realizedProfits);
@@ -518,7 +514,7 @@ public class StatisticServiceImpl implements StatisticService {
             } else {
                 List<String> errorMessages = Collections.singletonList(String.format(INVALID_RATE, rateName));
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
         }
         return BigDecimal.ONE;
@@ -570,7 +566,7 @@ public class StatisticServiceImpl implements StatisticService {
             } else {
                 List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
         }
     }
@@ -634,7 +630,7 @@ public class StatisticServiceImpl implements StatisticService {
         return userRepository.findById(userId).orElseThrow(() -> {
             List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
             LOGGER.error(errorMessages);
-            return new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            return new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         });
     }
 
@@ -755,7 +751,7 @@ public class StatisticServiceImpl implements StatisticService {
         return statisticRepository.findByUserIdAndStockId(userId, stockId).orElseThrow(() -> {
             List<String> errorMessages = Collections.singletonList(String.format("Error retrieving statistic for stock ID %d and user ID %d", stockId, userId));
             LOGGER.error(errorMessages);
-            return new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            return new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         });
     }
 
@@ -793,7 +789,7 @@ public class StatisticServiceImpl implements StatisticService {
     private void handleUserNotFound(Long userId) {
         List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
         LOGGER.error(errorMessages);
-        throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+        throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
     }
 
     private void processStocks(Long userId, List<Long> stockIds, String displayCurrency) {
@@ -828,7 +824,7 @@ public class StatisticServiceImpl implements StatisticService {
     private void handleInvalidStock() {
         List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
         LOGGER.error(errorMessages);
-        throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+        throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
     }
 
     private void calculateAndLogOverallProfits(Long userId, List<Long> stockIds, String displayCurrency) {

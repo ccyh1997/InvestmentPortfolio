@@ -2,8 +2,8 @@ package com.example.investmentportfolio.controller;
 
 import com.example.investmentportfolio.dto.StockDto;
 import com.example.investmentportfolio.service.StockService;
+import com.example.investmentportfolio.util.Constants;
 import com.example.investmentportfolio.util.CustomError;
-import com.example.investmentportfolio.util.ErrorConstants;
 import com.example.investmentportfolio.util.ValidationException;
 import jakarta.validation.Valid;
 import org.apache.logging.log4j.LogManager;
@@ -33,7 +33,7 @@ public class StockController {
         if (bindingResult.hasErrors()) {
             List<String> errorMessages = bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
             LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
             StockDto createdStockDto = stockService.createStock(stockDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdStockDto);
@@ -87,7 +87,7 @@ public class StockController {
         if (bindingResult.hasErrors()) {
             List<String> errorMessages = bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
             LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
             StockDto updatedStockDto = stockService.updateStockById(stockId, stockDto);
             return ResponseEntity.ok(updatedStockDto);
@@ -99,7 +99,7 @@ public class StockController {
         if (bindingResult.hasErrors()) {
             List<String> errorMessages = bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
             LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
             StockDto updatedStockDto = stockService.updateStockByTicker(stockTicker, stockDto);
             return ResponseEntity.ok(updatedStockDto);

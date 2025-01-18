@@ -2,8 +2,8 @@ package com.example.investmentportfolio.controller;
 
 import com.example.investmentportfolio.dto.ExchangeDto;
 import com.example.investmentportfolio.service.ExchangeService;
+import com.example.investmentportfolio.util.Constants;
 import com.example.investmentportfolio.util.CustomError;
-import com.example.investmentportfolio.util.ErrorConstants;
 import com.example.investmentportfolio.util.ValidationException;
 import jakarta.validation.Valid;
 import org.apache.logging.log4j.LogManager;
@@ -31,7 +31,7 @@ public class ExchangeController {
         if (bindingResult.hasErrors()) {
             List<String> errorMessages = bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
             LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
             ExchangeDto createdExchangeDto = exchangeService.createExchange(exchangeDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdExchangeDto);
@@ -67,7 +67,7 @@ public class ExchangeController {
         if (bindingResult.hasErrors()) {
             List<String> errorMessages = bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
             LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
             ExchangeDto updatedExchangeDto = exchangeService.updateExchangeById(exchangeId, exchangeDto);
             return ResponseEntity.ok(updatedExchangeDto);
@@ -79,7 +79,7 @@ public class ExchangeController {
         if (bindingResult.hasErrors()) {
             List<String> errorMessages = bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
             LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
             ExchangeDto updatedExchangeDto = exchangeService.updateExchangeBySuffix(suffix, exchangeDto);
             return ResponseEntity.ok(updatedExchangeDto);

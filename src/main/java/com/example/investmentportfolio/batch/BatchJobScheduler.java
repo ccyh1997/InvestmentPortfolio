@@ -1,7 +1,7 @@
 package com.example.investmentportfolio.batch;
 
+import com.example.investmentportfolio.util.Constants;
 import com.example.investmentportfolio.util.CustomError;
-import com.example.investmentportfolio.util.ErrorConstants;
 import com.example.investmentportfolio.util.GeneralException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,14 +28,14 @@ public class BatchJobScheduler {
         this.updateJob = updateJob;
     }
 
-    @Scheduled(cron = "10 38 16 * * *")
+    @Scheduled(cron = "25 51 16 * * *")
     public void runBatchJob() {
         try {
             jobLauncher.run(updateJob, new JobParameters());
         } catch (JobExecutionException e) {
             List<String> errorMessages = Collections.singletonList(e.getMessage());
             LOGGER.error(errorMessages);
-            throw new GeneralException(new CustomError(ErrorConstants.INTERNAL_SERVER_ERROR_ERROR_CODE, errorMessages));
+            throw new GeneralException(new CustomError(Constants.INTERNAL_SERVER_ERROR_ERROR_CODE, errorMessages));
         }
     }
 }

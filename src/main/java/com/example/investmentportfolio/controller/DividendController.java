@@ -2,8 +2,8 @@ package com.example.investmentportfolio.controller;
 
 import com.example.investmentportfolio.dto.DividendDto;
 import com.example.investmentportfolio.service.DividendService;
+import com.example.investmentportfolio.util.Constants;
 import com.example.investmentportfolio.util.CustomError;
-import com.example.investmentportfolio.util.ErrorConstants;
 import com.example.investmentportfolio.util.ValidationException;
 import jakarta.validation.Valid;
 import org.apache.logging.log4j.LogManager;
@@ -31,7 +31,7 @@ public class DividendController {
         if (bindingResult.hasErrors()) {
             List<String> errorMessages = bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
             LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
             DividendDto createdDividendDto = dividendService.createDividend(dividendDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdDividendDto);
@@ -67,7 +67,7 @@ public class DividendController {
         if (bindingResult.hasErrors()) {
             List<String> errorMessages = bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
             LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
             DividendDto updatedDividendDto = dividendService.updateDividendById(dividendId, dividendDto);
             return ResponseEntity.ok(updatedDividendDto);

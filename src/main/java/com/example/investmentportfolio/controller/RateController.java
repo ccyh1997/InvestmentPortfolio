@@ -2,8 +2,8 @@ package com.example.investmentportfolio.controller;
 
 import com.example.investmentportfolio.dto.RateDto;
 import com.example.investmentportfolio.service.RateService;
+import com.example.investmentportfolio.util.Constants;
 import com.example.investmentportfolio.util.CustomError;
-import com.example.investmentportfolio.util.ErrorConstants;
 import com.example.investmentportfolio.util.ValidationException;
 import jakarta.validation.Valid;
 import org.apache.logging.log4j.LogManager;
@@ -31,7 +31,7 @@ public class RateController {
         if (bindingResult.hasErrors()) {
             List<String> errorMessages = bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
             LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
             RateDto createdRateDto = rateService.createRate(rateDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdRateDto);
@@ -55,7 +55,7 @@ public class RateController {
         if (bindingResult.hasErrors()) {
             List<String> errorMessages = bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
             LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
             RateDto updatedRateDto = rateService.updateRateById(rateId, rateDto);
             return ResponseEntity.ok(updatedRateDto);

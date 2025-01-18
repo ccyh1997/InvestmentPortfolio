@@ -19,10 +19,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import static com.example.investmentportfolio.util.Constants.NO_RATE_FOUND_WITH_ID;
+
 @Service
 public class RateServiceImpl implements RateService {
     private static final Logger LOGGER = LogManager.getLogger(RateServiceImpl.class);
-    public static final String NO_RATE_FOUND_WITH_ID = "No rate found with id: %d";
     private final RateRepository rateRepository;
     private final RateMapper rateMapper;
     private final Validator validator;
@@ -39,13 +40,13 @@ public class RateServiceImpl implements RateService {
         if (!violations.isEmpty()) {
             List<String> errorMessages = violations.stream().map(ConstraintViolation::getMessage).toList();
             LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
             Rate rate = rateMapper.convertToEntity(rateDto);
             if (rateRepository.existsByRateNameIgnoreCase(rate.getRateName())) {
                 List<String> errorMessages = Collections.singletonList("A rate with the same name already exists.");
                 LOGGER.error(errorMessages);
-                throw new AlreadyExistsException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+                throw new AlreadyExistsException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
             } else {
                 rateRepository.save(rate);
                 return rateMapper.convertToDto(rate);
@@ -61,7 +62,7 @@ public class RateServiceImpl implements RateService {
         } else {
             List<String> errorMessages = Collections.singletonList("No rate(s) found.");
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -73,7 +74,7 @@ public class RateServiceImpl implements RateService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_RATE_FOUND_WITH_ID, rateId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -87,7 +88,7 @@ public class RateServiceImpl implements RateService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_RATE_FOUND_WITH_ID, rateId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -100,7 +101,7 @@ public class RateServiceImpl implements RateService {
         } else {
             List<String> errorMessages = Collections.singletonList("No rate(s) found.");
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -113,7 +114,7 @@ public class RateServiceImpl implements RateService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_RATE_FOUND_WITH_ID, rateId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 }

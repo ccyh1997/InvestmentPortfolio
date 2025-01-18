@@ -28,12 +28,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import static com.example.investmentportfolio.util.Constants.*;
+
 @Service
 public class StockServiceImpl implements StockService {
     private static final Logger LOGGER = LogManager.getLogger(StockServiceImpl.class);
-    public static final String NO_STOCK_FOUND_WITH_ID = "No stock found with id: %d";
-    public static final String NO_STOCK_FOUND_WITH_TICKER = "No stock found with ticker: %s";
-    public static final String NO_EXCHANGE_FOUND_WITH_NAME = "No exchange found with name: %s";
     private final StockRepository stockRepository;
     private final ExchangeRepository exchangeRepository;
     private final StockMapper stockMapper;
@@ -52,7 +51,7 @@ public class StockServiceImpl implements StockService {
         if (!violations.isEmpty()) {
             List<String> errorMessages = violations.stream().map(ConstraintViolation::getMessage).toList();
             LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
             Stock stock = stockMapper.convertToEntity(stockDto);
             Optional<Long> optionalId = exchangeRepository.findIdByExchange(stockDto.getExchange().toUpperCase());
@@ -61,12 +60,12 @@ public class StockServiceImpl implements StockService {
             } else {
                 List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_NAME, stockDto.getExchange()));
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
             if (stockRepository.existsByStockTickerIgnoreCase(stock.getStockTicker())) {
                 List<String> errorMessages = Collections.singletonList("A stock with the same ticker already exists.");
                 LOGGER.error(errorMessages);
-                throw new AlreadyExistsException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+                throw new AlreadyExistsException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
             } else {
                 stockRepository.save(stock);
                 return stockMapper.convertToDto(stock);
@@ -86,7 +85,7 @@ public class StockServiceImpl implements StockService {
         } else {
             List<String> errorMessages = Collections.singletonList("No stock(s) found.");
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -101,7 +100,7 @@ public class StockServiceImpl implements StockService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_STOCK_FOUND_WITH_ID, stockId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -116,7 +115,7 @@ public class StockServiceImpl implements StockService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_STOCK_FOUND_WITH_TICKER, stockTicker));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -132,7 +131,7 @@ public class StockServiceImpl implements StockService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format("No stock(s) found with type: %s", stockType));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -148,7 +147,7 @@ public class StockServiceImpl implements StockService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format("No stock(s) found from exchange id: %d", exchangeId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -164,7 +163,7 @@ public class StockServiceImpl implements StockService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format("No stock(s) found with dividend indicator: %s", divInd));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -180,7 +179,7 @@ public class StockServiceImpl implements StockService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format("No stock(s) found with delist indicator: %s", delistInd));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -195,14 +194,14 @@ public class StockServiceImpl implements StockService {
             } else {
                 List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_NAME, stockDto.getExchange()));
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
             stockRepository.save(updatedStock);
             return stockMapper.convertToDto(updatedStock);
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_STOCK_FOUND_WITH_ID, stockId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -217,14 +216,14 @@ public class StockServiceImpl implements StockService {
             } else {
                 List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_NAME, stockDto.getExchange()));
                 LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
             stockRepository.save(updatedStock);
             return stockMapper.convertToDto(updatedStock);
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_STOCK_FOUND_WITH_TICKER, stockTicker));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -237,7 +236,7 @@ public class StockServiceImpl implements StockService {
         } else {
             List<String> errorMessages = Collections.singletonList("No stock(s) found.");
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -250,7 +249,7 @@ public class StockServiceImpl implements StockService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_STOCK_FOUND_WITH_ID, stockId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -264,7 +263,7 @@ public class StockServiceImpl implements StockService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_STOCK_FOUND_WITH_TICKER, stockTicker));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -284,13 +283,13 @@ public class StockServiceImpl implements StockService {
                 } else {
                     List<String> errorMessages = Collections.singletonList(String.format("Stock with ticker %s cannot be found in exchange: %s", stockTicker, exchange));
                     LOGGER.error(errorMessages);
-                    throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+                    throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
                 }
             }
         } else {
             List<String> errorMessages = Collections.singletonList("No stocks found.");
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 

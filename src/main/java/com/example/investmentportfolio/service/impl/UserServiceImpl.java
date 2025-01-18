@@ -19,11 +19,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import static com.example.investmentportfolio.util.Constants.NO_USER_FOUND_WITH_ID;
+import static com.example.investmentportfolio.util.Constants.NO_USER_FOUND_WITH_USERNAME;
+
 @Service
 public class UserServiceImpl implements UserService {
     private static final Logger LOGGER = LogManager.getLogger(UserServiceImpl.class);
-    public static final String NO_USER_FOUND_WITH_ID = "No user found with id: %d";
-    public static final String NO_USER_FOUND_WITH_USERNAME = "No user found with username: %s";
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final Validator validator;
@@ -40,13 +41,13 @@ public class UserServiceImpl implements UserService {
         if (!violations.isEmpty()) {
             List<String> errorMessages = violations.stream().map(ConstraintViolation::getMessage).toList();
             LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
         } else {
             User user = userMapper.convertToEntity(userDto);
             if (userRepository.existsByUsernameIgnoreCase(user.getUsername())) {
                 List<String> errorMessages = Collections.singletonList("An user with the same username already exists.");
                 LOGGER.error(errorMessages);
-                throw new AlreadyExistsException(new CustomError(ErrorConstants.BAD_REQUEST_ERROR_CODE, errorMessages));
+                throw new AlreadyExistsException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
             } else {
                 userRepository.save(user);
                 return userMapper.convertToDto(user);
@@ -62,7 +63,7 @@ public class UserServiceImpl implements UserService {
         } else {
             List<String> errorMessages = Collections.singletonList("No user(s) found.");
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -74,7 +75,7 @@ public class UserServiceImpl implements UserService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -86,7 +87,7 @@ public class UserServiceImpl implements UserService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_USERNAME, username));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -100,7 +101,7 @@ public class UserServiceImpl implements UserService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -114,7 +115,7 @@ public class UserServiceImpl implements UserService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_USERNAME, username));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -127,7 +128,7 @@ public class UserServiceImpl implements UserService {
         } else {
             List<String> errorMessages = Collections.singletonList("No user(s) found.");
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -140,7 +141,7 @@ public class UserServiceImpl implements UserService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
@@ -154,7 +155,7 @@ public class UserServiceImpl implements UserService {
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_USERNAME, username));
             LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(ErrorConstants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 }
