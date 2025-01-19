@@ -1,20 +1,21 @@
-DROP TABLE IF EXISTS Users, Exchanges, Stocks, Rates, Dividends, Statistics, Transactions;
+DROP TABLE IF EXISTS Users, Exchanges, Stocks, Rates, Dividends, Statistics, Transactions, Tokens;
 
 CREATE TABLE Users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(255),
     password VARCHAR(255),
+    roles VARCHAR[],
     first_name VARCHAR(255),
     last_name VARCHAR(255),
     image_path VARCHAR(255),
     disp_curr CHAR(3)
 );
 
-INSERT INTO Users (username, password, first_name, last_name, image_path, disp_curr)
+INSERT INTO Users (username, password, roles, first_name, last_name, image_path, disp_curr)
 VALUES
-    ('ccyh_97', 'password123', 'Caleb', 'Chan', NULL, 'SGD'),
-    ('prataboy', 'password123', 'Kelvin', 'Lim', NULL, 'SGD'),
-    ('moneyizlife', 'password123', 'Christopher', 'Goh', NULL, 'USD');
+    ('ccyh_97', '$2b$12$0YvmQvNAyFo61yzj39gL6OKYIc0mnvPQtp6EDy37ghXKlg5iVvQYm', ARRAY['ADMIN', 'USER'], 'Caleb', 'Chan', NULL, 'SGD'),
+    ('prataboy', '$2b$12$fiqhyqVJKRq9iAa4/FcMIOjaig1p2FsE7E8dlCSygZW/KnJ2H88yi', ARRAY['USER'], 'Kelvin', 'Lim', NULL, 'SGD'),
+    ('moneyizlife', '$2b$12$b09v7JmHkbgWxHnHCjnrm.bKCaTAXyy.ioV1TOp4fQ2L4I4EG4O4G', ARRAY['USER'], 'Christopher', 'Goh', NULL, 'USD');
 
 CREATE TABLE Exchanges (
     exchange_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -238,3 +239,14 @@ VALUES
     (1, '2023-10-22', 'Sell', 1, 10.24, 33.21, 1.44, 'SGD'),
     (1, '2023-07-25', 'Buy', 2, 15.763, 539.66, 1.51, 'USD'),
     (1, '2023-01-11', 'Buy', 3, 23.44211, 195.33, 3.22, 'USD');
+
+CREATE TABLE Tokens (
+    token_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    refresh_token UUID,
+    expiration_time TIMESTAMP
+);
+
+INSERT INTO Tokens (user_id, refresh_token, expiration_time)
+VALUES
+    (1, 'd1d39f7e-d02f-4204-b3bb-1d062b8adf55', '2025-01-20 15:00:00');

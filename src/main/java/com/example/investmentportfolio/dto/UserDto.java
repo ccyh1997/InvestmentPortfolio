@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Set;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -21,6 +23,8 @@ public class UserDto {
     @Pattern(regexp = "^\\S{8,}$", message = "Password must be at least 8 characters long and contain no whitespace characters.")
     private String password;
 
+    private Set<String> roles;
+
     @Pattern(regexp = "^(?!\\s)[a-zA-Z\\s]{1,50}(?<!\\s)$", message = "First name must only contain letters and spaces, cannot exceed 50 characters, and must not start or end with whitespace.")
     private String firstName;
 
@@ -30,7 +34,6 @@ public class UserDto {
     @Pattern(regexp = "^\\S{1,20}\\.(jpg|jpeg|png)$", message = "Image path must not contain whitespace, end with .jpg, .jpeg, or .png, and have a maximum of 20 characters for the image name.")
     private String imagePath;
 
-    @NotBlank(groups = CreateValidation.class, message = "Display currency cannot be blank.")
     @Pattern(regexp = "^[a-zA-Z]{3}$", message = "Display currency must be exactly 3 letters.")
     private String displayCurrency;
 }

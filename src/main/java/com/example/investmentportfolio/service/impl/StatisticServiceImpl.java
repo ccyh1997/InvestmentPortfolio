@@ -711,7 +711,6 @@ public class StatisticServiceImpl implements StatisticService {
         }
         BigDecimal totalDividends = stockIds.stream().map(stockId -> statisticRepository.getDividends(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
         LOGGER.info("Total Dividends Earned: {} ${}", displayCurrency, totalDividends.stripTrailingZeros());
-        LOGGER.info(Constants.ASTERISK);
     }
 
     private List<Long> getStockIdsByUserId(Long userId) {
@@ -835,7 +834,6 @@ public class StatisticServiceImpl implements StatisticService {
     @Transactional
     @Override
     public void updateStatisticsForUser(Long userId) {
-        LOGGER.info("");
         LOGGER.info(Constants.ASTERISK);
         LOGGER.info(String.format("Statistics for user id: %d", userId));
         calculateTotalUnits(userId);

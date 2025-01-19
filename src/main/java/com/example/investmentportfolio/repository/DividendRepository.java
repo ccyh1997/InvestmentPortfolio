@@ -15,6 +15,6 @@ public interface DividendRepository extends JpaRepository<Dividend, Long> {
 
     List<Dividend> findByExchangeId(Long exchangeId);
 
-    @Query(value = "SELECT * FROM dividends WHERE stock_id = ?1 AND ex_date >= CAST(?2 AS DATE) ORDER BY ex_date ASC", nativeQuery = true)
+    @Query(value = "SELECT * FROM dividends WHERE stock_id = ?1 AND CAST(ex_date AS DATE) >= CAST(?2 AS DATE) ORDER BY ex_date ASC", nativeQuery = true)
     List<Dividend> getRelevantDividends(Long stockId, String date);
 }

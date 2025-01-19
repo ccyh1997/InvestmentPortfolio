@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,6 +27,7 @@ public class ExchangeController {
         this.exchangeService = exchangeService;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/create")
     public ResponseEntity<ExchangeDto> createExchange(@Valid @RequestBody ExchangeDto exchangeDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -38,30 +40,35 @@ public class ExchangeController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/all")
     public ResponseEntity<List<ExchangeDto>> getAllExchanges() {
         List<ExchangeDto> exchangeDtoList = exchangeService.getAllExchanges();
         return ResponseEntity.ok(exchangeDtoList);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/id/{exchangeId}")
     public ResponseEntity<ExchangeDto> getExchangeById(@PathVariable Long exchangeId) {
         ExchangeDto exchangeDto = exchangeService.getExchangeById(exchangeId);
         return ResponseEntity.ok(exchangeDto);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/country/{countryCode}")
     public ResponseEntity<List<ExchangeDto>> getExchangesByCountryCode(@PathVariable String countryCode) {
         List<ExchangeDto> exchangeDtoList = exchangeService.getExchangesByCountryCode(countryCode);
         return ResponseEntity.ok(exchangeDtoList);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/suffix/{suffix}")
     public ResponseEntity<ExchangeDto> getExchangeBySuffix(@PathVariable String suffix) {
         ExchangeDto exchangeDto = exchangeService.getExchangeBySuffix(suffix);
         return ResponseEntity.ok(exchangeDto);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/update/id/{exchangeId}")
     public ResponseEntity<ExchangeDto> updateExchangeById(@PathVariable Long exchangeId, @Valid @RequestBody ExchangeDto exchangeDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -74,6 +81,7 @@ public class ExchangeController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/update/suffix/{suffix}")
     public ResponseEntity<ExchangeDto> updateExchangeBySuffix(@PathVariable String suffix, @Valid @RequestBody ExchangeDto exchangeDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -86,18 +94,21 @@ public class ExchangeController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/delete/all")
     public ResponseEntity<String> deleteAllExchanges() {
         exchangeService.deleteAllExchanges();
         return ResponseEntity.ok("Successfully deleted all exchanges.");
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/delete/id/{exchangeId}")
     public ResponseEntity<String> deleteExchangeById(@PathVariable Long exchangeId) {
         exchangeService.deleteExchangeById(exchangeId);
         return ResponseEntity.ok(String.format("Successfully deleted exchange with id: %d", exchangeId));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/delete/suffix/{suffix}")
     public ResponseEntity<String> deleteExchangeBySuffix(@PathVariable String suffix) {
         ExchangeDto exchangeDto = exchangeService.deleteExchangeBySuffix(suffix);

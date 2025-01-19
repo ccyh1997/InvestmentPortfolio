@@ -27,6 +27,16 @@ public class Constants {
     public static final String NO_USER_FOUND_WITH_ID = "No user found with id: %d";
     public static final String NO_USER_FOUND_WITH_USERNAME = "No user found with username: %s";
     public static final String BAD_REQUEST_ERROR_CODE = "400 Bad Request";
+    public static final String UNAUTHORIZED_ERROR_CODE = "401 Unauthorized";
+    public static final String FORBIDDEN_ERROR_CODE = "403 Forbidden";
     public static final String NOT_FOUND_ERROR_CODE = "404 Not Found";
     public static final String INTERNAL_SERVER_ERROR_ERROR_CODE = "500 Internal Server Error";
+    public static final String USER = "USER";
+    public static final String FORBIDDEN_ERROR_MESSAGE = "You do not have permission to access this resource.";
+    public static final String INVALID_CREDENTIALS_ERROR_MESSAGE = "Invalid Credentials. Please try again.";
+    public static final String SUCCESSFUL_REGISTRATION_MESSAGE = "You’re all set! Your registration is complete, and you can proceed to log in.";
+    public static final String USERNAME_TAKEN_ERROR_MESSAGE = "This username is already taken. Please try again.";
+    public static final String VALID_REFRESH_TOKEN_MESSAGE = "Refresh token is still valid; continuing to use the current token.";
+    public static final String GENERATE_REFRESH_TOKEN_MESSAGE = "Generated a new refresh token.";
+    public static final String SESSION_EXPIRED_MESSAGE = "Your session has expired. Please log in again.";
 }

@@ -11,7 +11,7 @@ import java.util.List;
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
     List<Transaction> findByUserId(Long userId);
 
-    @Query(value = "SELECT * FROM transactions WHERE user_id = ?1 AND stock_id = ?2 AND transaction_date <= CAST(?3 AS DATE)", nativeQuery = true)
+    @Query(value = "SELECT * FROM transactions WHERE user_id = ?1 AND stock_id = ?2 AND CAST(transaction_date AS DATE) <= CAST(?3 AS DATE)", nativeQuery = true)
     List<Transaction> findByUserIdAndStockIdAndDate(Long userId, Long stockId, String date);
 
     @Query(value = "SELECT transaction_date FROM transactions WHERE user_id = ?1 AND stock_id = ?2 ORDER BY transaction_date ASC LIMIT 1", nativeQuery = true)
@@ -23,6 +23,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query(value = "SELECT * FROM transactions WHERE user_id = ?1 AND stock_id = ?2 AND transaction_type = 'Sell'", nativeQuery = true)
     List<Transaction> getSellTransactionsByStock(Long userId, Long stockId);
 
-    @Query(value = "SELECT * FROM transactions WHERE user_id = ?1 AND stock_id = ?2 AND transaction_type = 'Buy' AND transaction_date <= CAST(?3 AS DATE)", nativeQuery = true)
+    @Query(value = "SELECT * FROM transactions WHERE user_id = ?1 AND stock_id = ?2 AND transaction_type = 'Buy' AND CAST(transaction_date AS DATE) <= CAST(?3 AS DATE)", nativeQuery = true)
     List<Transaction> getBuyTransactionsByUserIdAndStockIdAndDate(Long userId, Long stockId, String date);
 }

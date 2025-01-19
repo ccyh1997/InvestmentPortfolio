@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -23,6 +24,7 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
 
     List<Stock> findByDelistInd(String divInd);
 
+    @Transactional
     void deleteByStockTickerIgnoreCase(String stockTicker);
 
     boolean existsByStockTickerIgnoreCase(String stockTicker);
@@ -51,6 +53,7 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
     @Query(value = "SELECT last_price FROM stocks WHERE stock_id = :stockId", nativeQuery = true)
     BigDecimal findLastPriceByStockId(@Param("stockId") Long stockId);
 
+    @Transactional
     @Modifying
     @Query(value = "UPDATE stocks SET last_price = ?1 WHERE stock_ticker = ?2 AND exchange_id = ?3", nativeQuery = true)
     void updateLastPriceByStockTickerAndExchange(BigDecimal lastPrice, String stockTicker, Long exchangeId);

@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Set;
+
 @Entity
 @Getter
 @Setter
@@ -24,6 +26,9 @@ public class User {
 
     @Column
     private String password;
+
+    @Column
+    private Set<String> roles;
 
     @Column(name = "first_name")
     private String firstName;
