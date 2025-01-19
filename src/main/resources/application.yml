@@ -12,4 +12,4 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: none # setting to none disables Hibernate's automatic DDL generation, @Entity will not automatically generate a table
+      ddl-auto: update # setting to none disables Hibernate's automatic DDL generation, @Entity will not automatically generate a table
