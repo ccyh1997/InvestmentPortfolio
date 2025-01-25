@@ -1,6 +1,7 @@
 package com.example.investmentportfolio.repository;
 
 import com.example.investmentportfolio.model.Stock;
+import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,6 +13,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+@Hidden
 @Repository
 public interface StockRepository extends JpaRepository<Stock, Long> {
     Optional<Stock> findByStockTickerIgnoreCase(String stockTicker);

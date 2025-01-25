@@ -5,6 +5,11 @@ import com.example.investmentportfolio.service.ExchangeService;
 import com.example.investmentportfolio.util.Constants;
 import com.example.investmentportfolio.util.CustomError;
 import com.example.investmentportfolio.util.ValidationException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -19,6 +24,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/exchanges")
+@Tag(name = "Exchange Controller", description = "Provides endpoints for managing exchanges.")
 public class ExchangeController {
     private static final Logger LOGGER = LogManager.getLogger(ExchangeController.class);
     private final ExchangeService exchangeService;
@@ -27,6 +33,32 @@ public class ExchangeController {
         this.exchangeService = exchangeService;
     }
 
+    @Operation(
+            summary = "Create a new exchange",
+            description = "Creates a new exchange entry in the database.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(
+                                    implementation = ExchangeDto.class,
+                                    example = "{ \"exchange\": \"hkex\", \"countryCode\": \"hk\", \"suffix\": \".hk\" }"
+                            )
+                    )
+            ),
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successfully created exchange",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(
+                                            implementation = ExchangeDto.class,
+                                            example = "{ \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
+                                    )
+                            )
+                    )
+            }
+    )
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/create")
     public ResponseEntity<ExchangeDto> createExchange(@Valid @RequestBody ExchangeDto exchangeDto, BindingResult bindingResult) {
@@ -40,6 +72,23 @@ public class ExchangeController {
         }
     }
 
+    @Operation(
+            summary = "Retrieve all exchanges",
+            description = "Fetches a list of all exchanges.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successfully retrieved all exchanges",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(
+                                            implementation = ExchangeDto.class,
+                                            example = "[ { \"exchange\": \"NASDAQ\", \"countryCode\": \"US\", \"suffix\": null }, { \"exchange\": \"NYSE\", \"countryCode\": \"US\", \"suffix\": null }, { \"exchange\": \"SGX\", \"countryCode\": \"SG\", \"suffix\": \".SI\" }, { \"exchange\": \"LSE\", \"countryCode\": \"UK\", \"suffix\": \".L\" }, { \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" } ]"
+                                    )
+                            )
+                    )
+            }
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/all")
     public ResponseEntity<List<ExchangeDto>> getAllExchanges() {
@@ -47,6 +96,23 @@ public class ExchangeController {
         return ResponseEntity.ok(exchangeDtoList);
     }
 
+    @Operation(
+            summary = "Retrieve an exchange by ID",
+            description = "Fetches a specific exchange by its ID.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successfully retrieved exchange",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(
+                                            implementation = ExchangeDto.class,
+                                            example = "{ \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
+                                    )
+                            )
+                    )
+            }
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/id/{exchangeId}")
     public ResponseEntity<ExchangeDto> getExchangeById(@PathVariable Long exchangeId) {
@@ -54,6 +120,23 @@ public class ExchangeController {
         return ResponseEntity.ok(exchangeDto);
     }
 
+    @Operation(
+            summary = "Retrieve exchanges by country code",
+            description = "Fetches exchanges that belong to the specified country.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successfully retrieved exchanges by country code",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(
+                                            implementation = ExchangeDto.class,
+                                            example = "[ { \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" } ]"
+                                    )
+                            )
+                    )
+            }
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/country/{countryCode}")
     public ResponseEntity<List<ExchangeDto>> getExchangesByCountryCode(@PathVariable String countryCode) {
@@ -61,6 +144,23 @@ public class ExchangeController {
         return ResponseEntity.ok(exchangeDtoList);
     }
 
+    @Operation(
+            summary = "Retrieve an exchange by suffix",
+            description = "Fetches an exchange that matches the specified suffix.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successfully retrieved exchange by suffix",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(
+                                            implementation = ExchangeDto.class,
+                                            example = "{ \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
+                                    )
+                            )
+                    )
+            }
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/suffix/{suffix}")
     public ResponseEntity<ExchangeDto> getExchangeBySuffix(@PathVariable String suffix) {
@@ -68,6 +168,32 @@ public class ExchangeController {
         return ResponseEntity.ok(exchangeDto);
     }
 
+    @Operation(
+            summary = "Update an exchange by ID",
+            description = "Updates an existing exchange by its ID.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(
+                                    implementation = ExchangeDto.class,
+                                    example = "{ \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
+                            )
+                    )
+            ),
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successfully updated exchange",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(
+                                            implementation = ExchangeDto.class,
+                                            example = "{ \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
+                                    )
+                            )
+                    )
+            }
+    )
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/update/id/{exchangeId}")
     public ResponseEntity<ExchangeDto> updateExchangeById(@PathVariable Long exchangeId, @Valid @RequestBody ExchangeDto exchangeDto, BindingResult bindingResult) {
@@ -81,6 +207,32 @@ public class ExchangeController {
         }
     }
 
+    @Operation(
+            summary = "Update an exchange by suffix",
+            description = "Updates an existing exchange by its suffix.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(
+                                    implementation = ExchangeDto.class,
+                                    example = "{ \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
+                            )
+                    )
+            ),
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successfully updated exchange",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(
+                                            implementation = ExchangeDto.class,
+                                            example = "{ \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
+                                    )
+                            )
+                    )
+            }
+    )
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/update/suffix/{suffix}")
     public ResponseEntity<ExchangeDto> updateExchangeBySuffix(@PathVariable String suffix, @Valid @RequestBody ExchangeDto exchangeDto, BindingResult bindingResult) {
@@ -94,6 +246,22 @@ public class ExchangeController {
         }
     }
 
+    @Operation(
+            summary = "Delete all exchanges",
+            description = "Deletes all exchange entries.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successfully deleted all exchanges",
+                            content = @Content(
+                                    mediaType = "text/plain",
+                                    schema = @Schema(
+                                            example = "Successfully deleted all exchanges"
+                                    )
+                            )
+                    )
+            }
+    )
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/delete/all")
     public ResponseEntity<String> deleteAllExchanges() {
@@ -101,6 +269,22 @@ public class ExchangeController {
         return ResponseEntity.ok("Successfully deleted all exchanges.");
     }
 
+    @Operation(
+            summary = "Delete an exchange by ID",
+            description = "Deletes an exchange by its ID.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successfully deleted exchange",
+                            content = @Content(
+                                    mediaType = "text/plain",
+                                    schema = @Schema(
+                                            example = "Successfully deleted exchange with id: 1"
+                                    )
+                            )
+                    )
+            }
+    )
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/delete/id/{exchangeId}")
     public ResponseEntity<String> deleteExchangeById(@PathVariable Long exchangeId) {
@@ -108,6 +292,22 @@ public class ExchangeController {
         return ResponseEntity.ok(String.format("Successfully deleted exchange with id: %d", exchangeId));
     }
 
+    @Operation(
+            summary = "Delete an exchange by suffix",
+            description = "Deletes an exchange by its suffix.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successfully deleted exchange",
+                            content = @Content(
+                                    mediaType = "text/plain",
+                                    schema = @Schema(
+                                            example = "Successfully deleted exchange with suffix: .HK"
+                                    )
+                            )
+                    )
+            }
+    )
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/delete/suffix/{suffix}")
     public ResponseEntity<String> deleteExchangeBySuffix(@PathVariable String suffix) {

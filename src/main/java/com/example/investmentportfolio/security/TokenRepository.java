@@ -1,5 +1,6 @@
 package com.example.investmentportfolio.security;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -8,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+@Hidden
 @Repository
 public interface TokenRepository extends JpaRepository<RefreshToken, Long> {
     @Query(value = "SELECT refresh_token FROM tokens where user_id = ?1 AND NOW() < expiration_time", nativeQuery = true)

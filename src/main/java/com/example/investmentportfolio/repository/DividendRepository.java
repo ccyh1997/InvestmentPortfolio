@@ -1,12 +1,14 @@
 package com.example.investmentportfolio.repository;
 
 import com.example.investmentportfolio.model.Dividend;
+import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+@Hidden
 @Repository
 public interface DividendRepository extends JpaRepository<Dividend, Long> {
     boolean existsByExDateOrPayDate(String exDate, String payDate);
