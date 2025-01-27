@@ -159,11 +159,10 @@ public class ExchangeServiceImpl implements ExchangeService {
 
     @Override
     @Transactional
-    public ExchangeDto deleteExchangeBySuffix(String suffix) {
+    public void deleteExchangeBySuffix(String suffix) {
         Optional<Exchange> optionalExchange = exchangeRepository.findBySuffixIgnoreCase(suffix);
         if (optionalExchange.isPresent()) {
             exchangeRepository.deleteBySuffixIgnoreCase(suffix);
-            return exchangeMapper.convertToDto(optionalExchange.get());
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_SUFFIX, suffix));
             LOGGER.error(errorMessages);

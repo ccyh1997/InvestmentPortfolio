@@ -5,9 +5,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
 class InvestmentPortfolioApplicationTests {
-
 	@Test
 	void contextLoads() {
+		InvestmentPortfolioApplication.main(new String[] {});
 	}
-
 }

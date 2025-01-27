@@ -41,7 +41,7 @@ public class ExchangeController {
                             mediaType = "application/json",
                             schema = @Schema(
                                     implementation = ExchangeDto.class,
-                                    example = "{ \"exchange\": \"hkex\", \"countryCode\": \"hk\", \"suffix\": \".hk\" }"
+                                    example = "{ \"exchange\": \"sehk\", \"countryCode\": \"hk\", \"suffix\": \".hk\" }"
                             )
                     )
             ),
@@ -53,7 +53,7 @@ public class ExchangeController {
                                     mediaType = "application/json",
                                     schema = @Schema(
                                             implementation = ExchangeDto.class,
-                                            example = "{ \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
+                                            example = "{ \"exchange\": \"SEHK\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
                                     )
                             )
                     )
@@ -83,7 +83,7 @@ public class ExchangeController {
                                     mediaType = "application/json",
                                     schema = @Schema(
                                             implementation = ExchangeDto.class,
-                                            example = "[ { \"exchange\": \"NASDAQ\", \"countryCode\": \"US\", \"suffix\": null }, { \"exchange\": \"NYSE\", \"countryCode\": \"US\", \"suffix\": null }, { \"exchange\": \"SGX\", \"countryCode\": \"SG\", \"suffix\": \".SI\" }, { \"exchange\": \"LSE\", \"countryCode\": \"UK\", \"suffix\": \".L\" }, { \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" } ]"
+                                            example = "[ { \"exchange\": \"NASDAQ\", \"countryCode\": \"US\", \"suffix\": null }, { \"exchange\": \"NYSE\", \"countryCode\": \"US\", \"suffix\": null }, { \"exchange\": \"SGX\", \"countryCode\": \"SG\", \"suffix\": \".SI\" }, { \"exchange\": \"LSE\", \"countryCode\": \"UK\", \"suffix\": \".L\" }, { \"exchange\": \"SEHK\", \"countryCode\": \"HK\", \"suffix\": \".HK\" } ]"
                                     )
                             )
                     )
@@ -107,7 +107,7 @@ public class ExchangeController {
                                     mediaType = "application/json",
                                     schema = @Schema(
                                             implementation = ExchangeDto.class,
-                                            example = "{ \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
+                                            example = "{ \"exchange\": \"SEHK\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
                                     )
                             )
                     )
@@ -131,7 +131,7 @@ public class ExchangeController {
                                     mediaType = "application/json",
                                     schema = @Schema(
                                             implementation = ExchangeDto.class,
-                                            example = "[ { \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" } ]"
+                                            example = "[ { \"exchange\": \"SEHK\", \"countryCode\": \"HK\", \"suffix\": \".HK\" } ]"
                                     )
                             )
                     )
@@ -155,7 +155,7 @@ public class ExchangeController {
                                     mediaType = "application/json",
                                     schema = @Schema(
                                             implementation = ExchangeDto.class,
-                                            example = "{ \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
+                                            example = "{ \"exchange\": \"SEHK\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
                                     )
                             )
                     )
@@ -176,7 +176,7 @@ public class ExchangeController {
                             mediaType = "application/json",
                             schema = @Schema(
                                     implementation = ExchangeDto.class,
-                                    example = "{ \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
+                                    example = "{ \"exchange\": \"SEHK\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
                             )
                     )
             ),
@@ -188,7 +188,7 @@ public class ExchangeController {
                                     mediaType = "application/json",
                                     schema = @Schema(
                                             implementation = ExchangeDto.class,
-                                            example = "{ \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
+                                            example = "{ \"exchange\": \"SEHK\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
                                     )
                             )
                     )
@@ -215,7 +215,7 @@ public class ExchangeController {
                             mediaType = "application/json",
                             schema = @Schema(
                                     implementation = ExchangeDto.class,
-                                    example = "{ \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
+                                    example = "{ \"exchange\": \"SEHK\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
                             )
                     )
             ),
@@ -227,7 +227,7 @@ public class ExchangeController {
                                     mediaType = "application/json",
                                     schema = @Schema(
                                             implementation = ExchangeDto.class,
-                                            example = "{ \"exchange\": \"HKEX\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
+                                            example = "{ \"exchange\": \"SEHK\", \"countryCode\": \"HK\", \"suffix\": \".HK\" }"
                                     )
                             )
                     )
@@ -311,7 +311,7 @@ public class ExchangeController {
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/delete/suffix/{suffix}")
     public ResponseEntity<String> deleteExchangeBySuffix(@PathVariable String suffix) {
-        ExchangeDto exchangeDto = exchangeService.deleteExchangeBySuffix(suffix);
-        return ResponseEntity.ok(String.format("Successfully deleted exchange with suffix: %s", exchangeDto.getSuffix()));
+        exchangeService.deleteExchangeBySuffix(suffix);
+        return ResponseEntity.ok(String.format("Successfully deleted exchange with suffix: %s", suffix));
     }
 }

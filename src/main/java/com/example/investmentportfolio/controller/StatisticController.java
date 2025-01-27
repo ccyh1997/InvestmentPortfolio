@@ -166,7 +166,7 @@ public class StatisticController {
                     )
             }
     )
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all")
     public ResponseEntity<List<StatisticDto>> getAllStatistics() {
         List<StatisticDto> statisticDtoList = statisticService.getAllStatistics();
@@ -203,7 +203,7 @@ public class StatisticController {
                     )
             }
     )
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/id/{statisticId}")
     public ResponseEntity<StatisticDto> getStatisticById(@PathVariable Long statisticId) {
         StatisticDto statisticDto = statisticService.getStatisticById(statisticId);
@@ -266,7 +266,8 @@ public class StatisticController {
                     )
             }
     )
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+//    @PreAuthorize("hasRole('ADMIN') OR #userId == authentication.principal.userId")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/userId/{userId}")
     public ResponseEntity<List<StatisticDto>> getStatisticsByUserId(@PathVariable Long userId) {
         List<StatisticDto> statisticDtoList = statisticService.getStatisticsByUserId(userId);

@@ -23,5 +23,5 @@ public interface ExchangeService {
 
     void deleteExchangeById(Long exchangeId);
 
-    ExchangeDto deleteExchangeBySuffix(String suffix);
+    void deleteExchangeBySuffix(String suffix);
 }

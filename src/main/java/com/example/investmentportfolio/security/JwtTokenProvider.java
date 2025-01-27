@@ -29,8 +29,8 @@ public class JwtTokenProvider {
     }
 
     public String generateJwt(String username) {
-
-        long jwtExpirationMs = (long) 15 * 60 * 1000; // 15 minutes expiry time
+        long jwtExpirationMs = (long) 24 * 60 * 60 * 1000; // 1 day expiry time
+//        long jwtExpirationMs = (long) 15 * 60 * 1000; // 15 minutes expiry time
         List<String> roles = userRepository.findRolesByUsername(username.toUpperCase());
         List<String> roleList = Arrays.asList(roles.getFirst().split(","));
         List<String> prefixedRoles = roleList.stream()
