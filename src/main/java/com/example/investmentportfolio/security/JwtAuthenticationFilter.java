@@ -1,5 +1,7 @@
 package com.example.investmentportfolio.security;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -15,7 +17,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
@@ -36,8 +38,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
             Claims claims = jwtTokenProvider.extractClaims(jwt);
             String username = claims.getSubject();
-            List<String> roles = Collections.singletonList(claims.get("roles").toString());
-            List<GrantedAuthority> authorities = roles.stream()
+            Object roles = claims.get("roles");
+            ObjectMapper objectMapper = new ObjectMapper();
+            List<String> rolesList = objectMapper.convertValue(roles, new TypeReference<List<String>>() {});
+            List<GrantedAuthority> authorities = rolesList.stream()
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
             Authentication authentication = new UsernamePasswordAuthenticationToken(
