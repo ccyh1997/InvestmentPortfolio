@@ -49,11 +49,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         filterChain.doFilter(request, response);
     }
-
-    public static List<String> convertObjectToListOfStrings(Object obj) {
-        return obj == null ? null : (obj instanceof String ? List.of((String) obj)
-                : (obj.getClass().isArray() ? Arrays.asList((Object[])obj)
-                : (obj instanceof Collection ? ((Collection<?>) obj) : List.of()))
-                .stream().map(String::valueOf).toList());
-    }
 }
