@@ -1,7 +1,5 @@
 package com.example.investmentportfolio.security;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -17,7 +15,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
@@ -38,8 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
             Claims claims = jwtTokenProvider.extractClaims(jwt);
             String username = claims.getSubject();
-            ObjectMapper objectMapper = new ObjectMapper();
-            List<String> roles = objectMapper.convertValue(claims.get("roles"), new TypeReference<List<String>>() {});
+            List<String> roles = Collections.singletonList(claims.get("roles").toString());
             List<GrantedAuthority> authorities = roles.stream()
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
@@ -51,5 +48,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
         filterChain.doFilter(request, response);
+    }
+
+    public static List<String> convertObjectToListOfStrings(Object obj) {
+        return obj == null ? null : (obj instanceof String ? List.of((String) obj)
+                : (obj.getClass().isArray() ? Arrays.asList((Object[])obj)
+                : (obj instanceof Collection ? ((Collection<?>) obj) : List.of()))
+                .stream().map(String::valueOf).toList());
     }
 }
