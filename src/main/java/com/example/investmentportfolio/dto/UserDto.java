@@ -1,6 +1,7 @@
 package com.example.investmentportfolio.dto;
 
 import com.example.investmentportfolio.util.CreateValidation;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -25,6 +26,7 @@ public class UserDto {
 
     @NotBlank(groups = CreateValidation.class, message = "Password cannot be blank.")
     @Pattern(regexp = "^\\S{8,}$", message = "Password must be at least 8 characters long and contain no whitespace characters.")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     @Schema(description = "The user's password, which must be at least 8 characters long and contain no whitespace characters.", example = "password123")
     private String password;
 

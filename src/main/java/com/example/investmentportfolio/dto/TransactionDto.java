@@ -27,8 +27,8 @@ public class TransactionDto {
     private String transactionDate;
 
     @NotBlank(groups = CreateValidation.class, message = "Transaction type cannot be blank.")
-    @Pattern(regexp = "^(buy|sell)$", message = "Transaction type must be either 'buy' or 'sell'.")
-    @Schema(description = "The type of transaction, either 'buy' or 'sell'.", example = "buy")
+    @Pattern(regexp = "^(?i)(buy|sell)$", message = "Transaction type must be either 'Buy' or 'Sell'.")
+    @Schema(description = "The type of transaction, either 'Buy' or 'Sell'.", example = "Buy")
     private String transactionType;
 
     @NotBlank(groups = CreateValidation.class, message = "Stock ticker cannot be blank.")

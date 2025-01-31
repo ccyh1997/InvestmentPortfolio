@@ -15,13 +15,7 @@ public interface StockService {
 
     StockDto getStockByTicker(String stockTicker);
 
-    List<StockDto> getStocksByType(String stockType);
-
-    List<StockDto> getStocksByExchangeId(Long exchangeId);
-
-    List<StockDto> getStocksByDividendIndicator(String divInd);
-
-    List<StockDto> getStocksByDelistIndicator(String delistInd);
+    List<StockDto> getStocksByFilters(Long exchangeId, String stockType, String divInd, String delistInd);
 
     StockDto updateStockById(Long stockId, StockDto stockDto);
 

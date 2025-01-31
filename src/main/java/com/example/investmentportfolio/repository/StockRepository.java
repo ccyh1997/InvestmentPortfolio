@@ -18,13 +18,12 @@ import java.util.Optional;
 public interface StockRepository extends JpaRepository<Stock, Long> {
     Optional<Stock> findByStockTickerIgnoreCase(String stockTicker);
 
-    List<Stock> findByStockTypeIgnoreCase(String stockType);
-
-    List<Stock> findByExchangeId(Long exchangeId);
-
-    List<Stock> findByDivInd(String divInd);
-
-    List<Stock> findByDelistInd(String divInd);
+    @Query(value = "SELECT * FROM stocks WHERE " +
+            "(?1 IS NULL OR exchange_id = ?1) AND " +
+            "(?2 IS NULL OR ?2 = '' OR stock_type ILIKE ?2) AND " +
+            "(?3 IS NULL OR ?3 = '' OR div_ind = ?3) AND " +
+            "(?4 IS NULL OR ?4 = '' OR delist_ind = ?4)", nativeQuery = true)
+    List<Stock> findByFilters(Long exchangeId, String stockType, String divInd, String delistInd);
 
     @Transactional
     void deleteByStockTickerIgnoreCase(String stockTicker);

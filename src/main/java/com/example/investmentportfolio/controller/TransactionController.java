@@ -35,7 +35,7 @@ public class TransactionController {
 
     @Operation(
             summary = "Create a new transaction",
-            description = "Add a new transaction to the portfolio. Users with 'ADMIN' or 'USER' roles can perform this operation.",
+            description = "Add a new transaction to the portfolio.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     content = @Content(
                             mediaType = "application/json",
@@ -98,7 +98,7 @@ public class TransactionController {
 
     @Operation(
             summary = "Retrieve all transactions",
-            description = "Fetch a list of all transactions in the portfolio. Users with 'ADMIN' or 'USER' roles can perform this operation.",
+            description = "Fetch a list of all transactions in the portfolio.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -149,7 +149,7 @@ public class TransactionController {
                     )
             }
     )
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all")
     public ResponseEntity<List<TransactionDto>> getAllTransactions() {
         List<TransactionDto> transactionDtoList = transactionService.getAllTransactions();
@@ -158,7 +158,7 @@ public class TransactionController {
 
     @Operation(
             summary = "Retrieve a transaction by ID",
-            description = "Fetch a specific transaction from the portfolio using its ID. Users with 'ADMIN' or 'USER' roles can perform this operation.",
+            description = "Fetch a specific transaction from the portfolio using its ID.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -185,7 +185,7 @@ public class TransactionController {
                     )
             }
     )
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/id/{transactionId}")
     public ResponseEntity<TransactionDto> getTransactionById(@PathVariable Long transactionId) {
         TransactionDto transactionDto = transactionService.getTransactionById(transactionId);
@@ -194,7 +194,7 @@ public class TransactionController {
 
     @Operation(
             summary = "Retrieve stock details by user ID",
-            description = "Fetch stock details for a specific user by their ID. Users with 'ADMIN' or 'USER' roles can perform this operation.",
+            description = "Fetch stock details for a specific user by their ID.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -220,7 +220,7 @@ public class TransactionController {
                     )
             }
     )
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasRole('ADMIN') OR #userId == authentication.principal")
     @GetMapping("/userId/{userId}")
     public ResponseEntity<List<TransactionDto>> getTransactionsByUserId(@PathVariable Long userId) {
         List<TransactionDto> transactionDtoList = transactionService.getTransactionsByUserId(userId);
@@ -229,7 +229,7 @@ public class TransactionController {
 
     @Operation(
             summary = "Update a transaction by ID",
-            description = "Update the details of an existing transaction using its ID. Users with 'ADMIN' or 'USER' roles can perform this operation.",
+            description = "Update the details of an existing transaction using its ID.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     content = @Content(
                             mediaType = "application/json",
@@ -277,7 +277,7 @@ public class TransactionController {
                     )
             }
     )
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/update/id/{transactionId}")
     public ResponseEntity<TransactionDto> updateTransactionById(@PathVariable Long transactionId, @Valid @RequestBody TransactionDto transactionDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -306,7 +306,7 @@ public class TransactionController {
                     )
             }
     )
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/delete/all")
     public ResponseEntity<String> deleteAllTransactions() {
         transactionService.deleteAllTransactions();
@@ -329,7 +329,7 @@ public class TransactionController {
                     )
             }
     )
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/delete/id/{transactionId}")
     public ResponseEntity<String> deleteTransactionById(@PathVariable Long transactionId) {
         transactionService.deleteTransactionById(transactionId);

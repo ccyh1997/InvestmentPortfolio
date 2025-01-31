@@ -12,16 +12,19 @@ public interface UserMapper {
     @Mapping(target = "displayCurrency", source = "displayCurrency", qualifiedByName = "toUpperCase")
     @Mapping(target = "firstName", source = "firstName", qualifiedByName = "capitalizeName")
     @Mapping(target = "lastName", source = "lastName", qualifiedByName = "capitalizeName")
+    @Mapping(target = "password", ignore = true)
     UserDto convertToDto(User user);
 
     @Mapping(target = "displayCurrency", source = "displayCurrency", qualifiedByName = "toUpperCase")
     @Mapping(target = "firstName", source = "firstName", qualifiedByName = "capitalizeName")
     @Mapping(target = "lastName", source = "lastName", qualifiedByName = "capitalizeName")
+    @Mapping(target = "password", ignore = true)
     User convertToEntity(UserDto userDto);
 
     @Mapping(target = "displayCurrency", source = "displayCurrency", qualifiedByName = "toUpperCase")
     @Mapping(target = "firstName", source = "firstName", qualifiedByName = "capitalizeName")
     @Mapping(target = "lastName", source = "lastName", qualifiedByName = "capitalizeName")
+    @Mapping(target = "password", ignore = true)
     User updateEntityWithDto(UserDto userDto, @MappingTarget User user);
 
     @Named("toUpperCase")
@@ -35,13 +38,5 @@ public interface UserMapper {
             return value;
         }
         return Arrays.stream(value.split("\\s+")).map(word -> !word.isEmpty() ? Character.toUpperCase(word.charAt(0)) + word.substring(1) : "").collect(Collectors.joining(" "));
-    }
-
-    @AfterMapping
-    default void maskPassword(User user, @MappingTarget UserDto userDto) {
-        if (user.getPassword() != null) {
-            String maskedPassword = "*".repeat(user.getPassword().length());
-            userDto.setPassword(maskedPassword);
-        }
     }
 }

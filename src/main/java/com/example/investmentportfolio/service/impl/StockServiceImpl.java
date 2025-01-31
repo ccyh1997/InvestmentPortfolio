@@ -120,8 +120,8 @@ public class StockServiceImpl implements StockService {
     }
 
     @Override
-    public List<StockDto> getStocksByType(String stockType) {
-        List<Stock> stocks = stockRepository.findByStockTypeIgnoreCase(stockType);
+    public List<StockDto> getStocksByFilters(Long exchangeId, String stockType, String divInd, String delistInd) {
+        List<Stock> stocks = stockRepository.findByFilters(exchangeId, stockType, divInd, delistInd);
         if (!stocks.isEmpty()) {
             return stocks.stream().map(stock -> {
                 Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
@@ -129,56 +129,7 @@ public class StockServiceImpl implements StockService {
                 return stockMapper.convertToDto(stock);
             }).toList();
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format("No stock(s) found with type: %s", stockType));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
-        }
-    }
-
-    @Override
-    public List<StockDto> getStocksByExchangeId(Long exchangeId) {
-        List<Stock> stocks = stockRepository.findByExchangeId(exchangeId);
-        if (!stocks.isEmpty()) {
-            return stocks.stream().map(stock -> {
-                Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
-                optionalExchange.ifPresent(ex -> stock.setExchange(String.valueOf(ex.getExchange())));
-                return stockMapper.convertToDto(stock);
-            }).toList();
-        } else {
-            List<String> errorMessages = Collections.singletonList(String.format("No stock(s) found from exchange id: %d", exchangeId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
-        }
-    }
-
-    @Override
-    public List<StockDto> getStocksByDividendIndicator(String divInd) {
-        List<Stock> stocks = stockRepository.findByDivInd(divInd);
-        if (!stocks.isEmpty()) {
-            return stocks.stream().map(stock -> {
-                Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
-                optionalExchange.ifPresent(ex -> stock.setExchange(String.valueOf(ex.getExchange())));
-                return stockMapper.convertToDto(stock);
-            }).toList();
-        } else {
-            List<String> errorMessages = Collections.singletonList(String.format("No stock(s) found with dividend indicator: %s", divInd));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
-        }
-    }
-
-    @Override
-    public List<StockDto> getStocksByDelistIndicator(String delistInd) {
-        List<Stock> stocks = stockRepository.findByDelistInd(delistInd);
-        if (!stocks.isEmpty()) {
-            return stocks.stream().map(stock -> {
-                Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
-                optionalExchange.ifPresent(ex -> stock.setExchange(String.valueOf(ex.getExchange())));
-                return stockMapper.convertToDto(stock);
-            }).toList();
-        } else {
-            List<String> errorMessages = Collections.singletonList(String.format("No stock(s) found with delist indicator: %s", delistInd));
-            LOGGER.error(errorMessages);
+            List<String> errorMessages = Collections.singletonList("No stocks were found matching the provided filters.");
             throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }

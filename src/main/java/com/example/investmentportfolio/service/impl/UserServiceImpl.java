@@ -5,8 +5,9 @@ import com.example.investmentportfolio.mapper.UserMapper;
 import com.example.investmentportfolio.model.User;
 import com.example.investmentportfolio.repository.UserRepository;
 import com.example.investmentportfolio.service.UserService;
-import com.example.investmentportfolio.util.*;
-import jakarta.validation.ConstraintViolation;
+import com.example.investmentportfolio.util.Constants;
+import com.example.investmentportfolio.util.CustomError;
+import com.example.investmentportfolio.util.NotFoundException;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.apache.logging.log4j.LogManager;
@@ -17,10 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import static com.example.investmentportfolio.util.Constants.NO_USER_FOUND_WITH_ID;
-import static com.example.investmentportfolio.util.Constants.NO_USER_FOUND_WITH_USERNAME;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -33,26 +32,6 @@ public class UserServiceImpl implements UserService {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         validator = Validation.buildDefaultValidatorFactory().getValidator();
-    }
-
-    @Override
-    public UserDto createUser(UserDto userDto) {
-        Set<ConstraintViolation<UserDto>> violations = validator.validate(userDto, CreateValidation.class);
-        if (!violations.isEmpty()) {
-            List<String> errorMessages = violations.stream().map(ConstraintViolation::getMessage).toList();
-            LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
-        } else {
-            User user = userMapper.convertToEntity(userDto);
-            if (userRepository.existsByUsernameIgnoreCase(user.getUsername())) {
-                List<String> errorMessages = Collections.singletonList("An user with the same username already exists.");
-                LOGGER.error(errorMessages);
-                throw new AlreadyExistsException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
-            } else {
-                userRepository.save(user);
-                return userMapper.convertToDto(user);
-            }
-        }
     }
 
     @Override
@@ -80,18 +59,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDto getUserByUsername(String username) {
-        Optional<User> optionalUser = userRepository.findByUsernameIgnoreCase(username);
-        if (optionalUser.isPresent()) {
-            return userMapper.convertToDto(optionalUser.get());
-        } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_USERNAME, username));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
-        }
-    }
-
-    @Override
     public UserDto updateUserById(Long userId, UserDto userDto) {
         Optional<User> optionalUser = userRepository.findById(userId);
         if (optionalUser.isPresent()) {
@@ -100,20 +67,6 @@ public class UserServiceImpl implements UserService {
             return userMapper.convertToDto(updatedUser);
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
-        }
-    }
-
-    @Override
-    public UserDto updateUserByUsername(String username, UserDto userDto) {
-        Optional<User> optionalUser = userRepository.findByUsernameIgnoreCase(username);
-        if (optionalUser.isPresent()) {
-            User updatedUser = userMapper.updateEntityWithDto(userDto, optionalUser.get());
-            userRepository.save(updatedUser);
-            return userMapper.convertToDto(updatedUser);
-        } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_USERNAME, username));
             LOGGER.error(errorMessages);
             throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
@@ -140,20 +93,6 @@ public class UserServiceImpl implements UserService {
             userRepository.deleteById(userId);
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
-        }
-    }
-
-    @Override
-    @Transactional
-    public UserDto deleteUserByUsername(String username) {
-        Optional<User> optionalUser = userRepository.findByUsernameIgnoreCase(username);
-        if (optionalUser.isPresent()) {
-            userRepository.deleteByUsernameIgnoreCase(username);
-            return userMapper.convertToDto(optionalUser.get());
-        } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_USERNAME, username));
             LOGGER.error(errorMessages);
             throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }

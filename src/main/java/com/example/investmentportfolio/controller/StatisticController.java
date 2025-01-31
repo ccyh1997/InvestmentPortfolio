@@ -35,7 +35,7 @@ public class StatisticController {
 
     @Operation(
             summary = "Create a new statistic",
-            description = "Allows administrators to create a new statistic with the provided details.",
+            description = "Create a new statistic with the provided details.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     content = @Content(
                             mediaType = "application/json",
@@ -266,8 +266,7 @@ public class StatisticController {
                     )
             }
     )
-//    @PreAuthorize("hasRole('ADMIN') OR #userId == authentication.principal.userId")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') OR #userId == authentication.principal")
     @GetMapping("/userId/{userId}")
     public ResponseEntity<List<StatisticDto>> getStatisticsByUserId(@PathVariable Long userId) {
         List<StatisticDto> statisticDtoList = statisticService.getStatisticsByUserId(userId);
@@ -276,7 +275,7 @@ public class StatisticController {
 
     @Operation(
             summary = "Update a statistic by ID",
-            description = "Allows administrators to update a statistic by its ID with the provided details.",
+            description = "Update a statistic by its ID with the provided details.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     content = @Content(
                             mediaType = "application/json",
@@ -341,7 +340,7 @@ public class StatisticController {
 
     @Operation(
             summary = "Delete all statistics",
-            description = "Allows administrators to delete all statistics.",
+            description = "Delete all statistics.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -364,7 +363,7 @@ public class StatisticController {
 
     @Operation(
             summary = "Delete a statistic by ID",
-            description = "Allows administrators to delete a statistic by its ID.",
+            description = "Delete a statistic by its ID.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -387,7 +386,7 @@ public class StatisticController {
 
     @Operation(
             summary = "Delete statistics by user ID",
-            description = "Allows administrators to delete statistics by user ID.",
+            description = "Delete statistics by user ID.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",

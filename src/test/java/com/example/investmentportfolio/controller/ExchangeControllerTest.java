@@ -175,7 +175,8 @@ class ExchangeControllerTest {
         ExchangeDto responseExchangeDto2 = new ExchangeDto("HKFE", "HK", null);
         List<ExchangeDto> responseExchangeDtoList = Arrays.asList(responseExchangeDto1, responseExchangeDto2);
         when(exchangeService.getExchangesByCountryCode(any())).thenReturn(responseExchangeDtoList);
-        mockMvc.perform(get("/exchanges/country/{countryCode}", 1)
+        mockMvc.perform(get("/exchanges")
+                        .param("countryCode", "HK")
                         .with(SecurityMockMvcRequestPostProcessors.csrf()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -194,7 +195,8 @@ class ExchangeControllerTest {
         ExchangeDto responseExchangeDto2 = new ExchangeDto("CGSE", "HK", null);
         List<ExchangeDto> responseExchangeDtoList = Arrays.asList(responseExchangeDto1, responseExchangeDto2);
         when(exchangeService.getExchangesByCountryCode(any())).thenReturn(responseExchangeDtoList);
-        mockMvc.perform(get("/exchanges/country/{countryCode}", 1)
+        mockMvc.perform(get("/exchanges")
+                        .param("countryCode", "HK")
                         .with(SecurityMockMvcRequestPostProcessors.csrf()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))

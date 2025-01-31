@@ -37,7 +37,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
             Claims claims = jwtTokenProvider.extractClaims(jwt);
-            String username = claims.getSubject();
             Object roles = claims.get("roles");
             ObjectMapper objectMapper = new ObjectMapper();
             List<String> rolesList = objectMapper.convertValue(roles, new TypeReference<List<String>>() {});
@@ -45,7 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
             Authentication authentication = new UsernamePasswordAuthenticationToken(
-                    username,
+                    claims.get("userId"),
                     null,
                     authorities
             );

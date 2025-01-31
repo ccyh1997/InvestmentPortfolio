@@ -138,8 +138,8 @@ public class ExchangeController {
             }
     )
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    @GetMapping("/country/{countryCode}")
-    public ResponseEntity<List<ExchangeDto>> getExchangesByCountryCode(@PathVariable String countryCode) {
+    @GetMapping
+    public ResponseEntity<List<ExchangeDto>> getExchangesByCountryCode(@RequestParam String countryCode) {
         List<ExchangeDto> exchangeDtoList = exchangeService.getExchangesByCountryCode(countryCode);
         return ResponseEntity.ok(exchangeDtoList);
     }

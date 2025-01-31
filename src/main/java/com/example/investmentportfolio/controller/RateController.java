@@ -35,7 +35,7 @@ public class RateController {
 
     @Operation(
             summary = "Create a new rate",
-            description = "Allows administrators to create a new exchange rate with the provided details.",
+            description = "Create a new exchange rate with the provided details.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     content = @Content(
                             mediaType = "application/json",
@@ -122,7 +122,7 @@ public class RateController {
 
     @Operation(
             summary = "Update a rate by ID",
-            description = "Allows administrators to update an exchange rate by its unique identifier.",
+            description = "Update an exchange rate by its ID.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     content = @Content(
                             mediaType = "application/json",
@@ -184,7 +184,7 @@ public class RateController {
 
     @Operation(
             summary = "Delete rate by ID",
-            description = "Deletes an exchange rate by its unique identifier.",
+            description = "Deletes an exchange rate by its ID.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",

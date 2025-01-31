@@ -35,7 +35,7 @@ public class StockController {
 
     @Operation(
             summary = "Create a new stock",
-            description = "Allows administrators to create a new stock with the provided details.",
+            description = "Create a new stock with the provided details.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     content = @Content(
                             mediaType = "application/json",
@@ -59,7 +59,7 @@ public class StockController {
             responses = {
                     @ApiResponse(
                             responseCode = "201",
-                            description = "Stock successfully created",
+                            description = "Stock created successfully",
                             content = @Content(
                                     mediaType = "application/json",
                                     schema = @Schema(
@@ -100,7 +100,7 @@ public class StockController {
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "List of all stocks",
+                            description = "Successfully retrieved all stocks",
                             content = @Content(
                                     mediaType = "application/json",
                                     schema = @Schema(
@@ -134,7 +134,7 @@ public class StockController {
                     )
             }
     )
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all")
     public ResponseEntity<List<StockDto>> getAllStocks() {
         List<StockDto> stockDtoList = stockService.getAllStocks();
@@ -147,7 +147,7 @@ public class StockController {
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Stock found",
+                            description = "Stock retrieved successfully",
                             content = @Content(
                                     mediaType = "application/json",
                                     schema = @Schema(
@@ -169,7 +169,7 @@ public class StockController {
                     )
             }
     )
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/id/{stockId}")
     public ResponseEntity<StockDto> getStockById(@PathVariable Long stockId) {
         StockDto stockDto = stockService.getStockById(stockId);
@@ -182,7 +182,7 @@ public class StockController {
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Stock found",
+                            description = "Stock retrieved successfully",
                             content = @Content(
                                     mediaType = "application/json",
                                     schema = @Schema(
@@ -204,7 +204,7 @@ public class StockController {
                     )
             }
     )
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/ticker/{stockTicker}")
     public ResponseEntity<StockDto> getStockByTicker(@PathVariable String stockTicker) {
         StockDto stockDto = stockService.getStockByTicker(stockTicker);
@@ -212,196 +212,49 @@ public class StockController {
     }
 
     @Operation(
-            summary = "Get stocks by type",
-            description = "Retrieve stocks of a specific type.",
+            summary = "Retrieve stocks by multiple filters",
+            description = "Retrieve stocks based on various filters including stock type, exchange ID, dividend indicator, and delist indicator.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "List of stocks of the specified type",
+                            description = "Stocks retrieved successfully",
                             content = @Content(
                                     mediaType = "application/json",
                                     schema = @Schema(
                                             implementation = StockDto.class,
                                             example = """
                                             [
-                                              {
-                                                "stockTicker": "D05",
-                                                "stockName": "DBS Group Holdings Ltd",
-                                                "stockType": "Equity",
-                                                "exchange": "SGX",
-                                                "lastPrice": "43.62",
-                                                "baseCurrency": "SGD",
-                                                "divInd": "Y",
-                                                "delistInd": "N"
-                                              },
-                                              {
-                                                "stockTicker": "AAPL",
-                                                "stockName": "Apple Inc.",
-                                                "stockType": "Equity",
-                                                "exchange": "NASDAQ",
-                                                "lastPrice": "229.98",
-                                                "baseCurrency": "USD",
-                                                "divInd": "Y",
-                                                "delistInd": "N"
-                                              }
+                                                {
+                                                    "stockTicker": "OV8",
+                                                    "stockName": "Sheng Siong Group Ltd",
+                                                    "stockType": "Equity",
+                                                    "exchange": "SGX",
+                                                    "lastPrice": "1.5306078",
+                                                    "baseCurrency": "SGD",
+                                                    "divInd": "Y",
+                                                    "delistInd": "N"
+                                                }
                                             ]
-                                            """
+                                        """
                                     )
                             )
                     )
             }
     )
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    @GetMapping("/type/{stockType}")
-    public ResponseEntity<List<StockDto>> getStocksByType(@PathVariable String stockType) {
-        List<StockDto> stockDtoList = stockService.getStocksByType(stockType);
-        return ResponseEntity.ok(stockDtoList);
-    }
-
-    @Operation(
-            summary = "Get stocks by exchange ID",
-            description = "Retrieve stocks based on the provided exchange ID.",
-            responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "List of stocks for the specified exchange ID",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(
-                                            implementation = StockDto.class,
-                                            example = """
-                                            [
-                                              {
-                                                "stockTicker": "D05",
-                                                "stockName": "DBS Group Holdings Ltd",
-                                                "stockType": "Equity",
-                                                "exchange": "SGX",
-                                                "lastPrice": "43.62",
-                                                "baseCurrency": "SGD",
-                                                "divInd": "Y",
-                                                "delistInd": "N"
-                                              },
-                                              {
-                                                "stockTicker": "OV8",
-                                                "stockName": "Sheng Siong Group Ltd",
-                                                "stockType": "Equity",
-                                                "exchange": "SGX",
-                                                "lastPrice": "1.5306078",
-                                                "baseCurrency": "SGD",
-                                                "divInd": "Y",
-                                                "delistInd": "N"
-                                              }
-                                            ]
-                                            """
-                                    )
-                            )
-                    )
-            }
-    )
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    @GetMapping("/exchangeId/{exchangeId}")
-    public ResponseEntity<List<StockDto>> getStocksByExchangeId(@PathVariable Long exchangeId) {
-        List<StockDto> stockDtoList = stockService.getStocksByExchangeId(exchangeId);
-        return ResponseEntity.ok(stockDtoList);
-    }
-
-    @Operation(
-            summary = "Get stocks by dividend indicator",
-            description = "Retrieve stocks based on dividend indicator (e.g., 'Y' or 'N').",
-            responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "List of stocks for the specified dividend indicator",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(
-                                            implementation = StockDto.class,
-                                            example = """
-                                            [
-                                              {
-                                                "stockTicker": "D05",
-                                                "stockName": "DBS Group Holdings Ltd",
-                                                "stockType": "Equity",
-                                                "exchange": "SGX",
-                                                "lastPrice": "43.62",
-                                                "baseCurrency": "SGD",
-                                                "divInd": "Y",
-                                                "delistInd": "N"
-                                              },
-                                              {
-                                                "stockTicker": "AAPL",
-                                                "stockName": "Apple Inc.",
-                                                "stockType": "Equity",
-                                                "exchange": "NASDAQ",
-                                                "lastPrice": "229.98",
-                                                "baseCurrency": "USD",
-                                                "divInd": "Y",
-                                                "delistInd": "N"
-                                              }
-                                            ]
-                                            """
-                                    )
-                            )
-                    )
-            }
-    )
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    @GetMapping("/divInd/{divInd}")
-    public ResponseEntity<List<StockDto>> getStocksByDividendIndicator(@PathVariable String divInd) {
-        List<StockDto> stockDtoList = stockService.getStocksByDividendIndicator(divInd);
-        return ResponseEntity.ok(stockDtoList);
-    }
-
-    @Operation(
-            summary = "Retrieve stocks by delist indicator",
-            description = "Allows users with roles 'ADMIN' or 'USER' to retrieve a list of stocks filtered by delist indicator.",
-            responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "Stocks successfully retrieved",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(
-                                            implementation = StockDto.class,
-                                            example = """
-                                                [
-                                                    {
-                                                        "stockTicker": "D05",
-                                                        "stockName": "DBS Group Holdings Ltd",
-                                                        "stockType": "Equity",
-                                                        "exchange": "SGX",
-                                                        "lastPrice": "43.62",
-                                                        "baseCurrency": "SGD",
-                                                        "divInd": "Y",
-                                                        "delistInd": "N"
-                                                    },
-                                                    {
-                                                        "stockTicker": "CSPX",
-                                                        "stockName": "IShares Core S&P 500 ETF",
-                                                        "stockType": "ETF",
-                                                        "exchange": "LSE",
-                                                        "lastPrice": "638.",
-                                                        "baseCurrency": "USD",
-                                                        "divInd": "N",
-                                                        "delistInd": "N"
-                                                    }
-                                                ]
-                                                """
-                                    )
-                            )
-                    )
-            }
-    )
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    @GetMapping("/delistInd/{delistInd}")
-    public ResponseEntity<List<StockDto>> getStocksByDelistIndicator(@PathVariable String delistInd) {
-        List<StockDto> stockDtoList = stockService.getStocksByDelistIndicator(delistInd);
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping
+    public ResponseEntity<List<StockDto>> getStocksByFilters(
+            @RequestParam(required = false) Long exchangeId,
+            @RequestParam(required = false) String stockType,
+            @RequestParam(required = false) String divInd,
+            @RequestParam(required = false) String delistInd) {
+        List<StockDto> stockDtoList = stockService.getStocksByFilters(exchangeId, stockType, divInd, delistInd);
         return ResponseEntity.ok(stockDtoList);
     }
 
     @Operation(
             summary = "Update a stock by ID",
-            description = "Allows administrators to update the details of a stock by its ID.",
+            description = "Update the details of a stock by its ID.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     content = @Content(
                             mediaType = "application/json",
@@ -412,7 +265,7 @@ public class StockController {
                                           "stockTicker": "ov8",
                                           "stockName": "Sheng Siong Group Ltd",
                                           "stockType": "Equity",
-                                          "exchange": "LSE",
+                                          "exchange": "SGX",
                                           "lastPrice": "1.63",
                                           "baseCurrency": "SGD",
                                           "divInd": "Y",
@@ -435,7 +288,7 @@ public class StockController {
                                                   "stockTicker": "OV8",
                                                   "stockName": "Sheng Siong Group Ltd",
                                                   "stockType": "Equity",
-                                                  "exchange": "LSE",
+                                                  "exchange": "SGX",
                                                   "lastPrice": "1.63",
                                                   "baseCurrency": "SGD",
                                                   "divInd": "Y",
@@ -462,7 +315,7 @@ public class StockController {
 
     @Operation(
             summary = "Update stock by ticker",
-            description = "Update stock details using the stock ticker. Only administrators are allowed to perform this operation.",
+            description = "Update stock details using the stock ticker.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     content = @Content(
                             mediaType = "application/json",
@@ -523,7 +376,7 @@ public class StockController {
 
     @Operation(
             summary = "Delete all stocks",
-            description = "Delete all stocks from the database. Only administrators are allowed to perform this operation.",
+            description = "Delete all stocks from the database.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -546,7 +399,7 @@ public class StockController {
 
     @Operation(
             summary = "Delete stock by ID",
-            description = "Delete a specific stock using the stock ID. Only administrators are allowed to perform this operation.",
+            description = "Delete a specific stock using the stock ID.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -569,7 +422,7 @@ public class StockController {
 
     @Operation(
             summary = "Delete stock by ticker",
-            description = "Delete a specific stock using the stock ticker. Only administrators are allowed to perform this operation.",
+            description = "Delete a specific stock using the stock ticker.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -587,6 +440,6 @@ public class StockController {
     @DeleteMapping("/delete/ticker/{stockTicker}")
     public ResponseEntity<String> deleteStockByTicker(@PathVariable String stockTicker) {
         StockDto stockDto = stockService.deleteStockByTicker(stockTicker);
-        return ResponseEntity.ok(String.format("Successfully deleted stock with ticker: %s", stockDto.getStockTicker()));
+        return ResponseEntity.ok(String.format("Successfully deleted stock with ticker: %s", stockTicker));
     }
 }

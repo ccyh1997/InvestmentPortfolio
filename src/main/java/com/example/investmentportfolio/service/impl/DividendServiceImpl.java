@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import static com.example.investmentportfolio.util.Constants.NO_DIVIDEND_FOUND_WITH_ID;
+import static com.example.investmentportfolio.util.Constants.*;
 
 @Service
 public class DividendServiceImpl implements DividendService {
@@ -68,7 +68,7 @@ public class DividendServiceImpl implements DividendService {
                 throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
             }
             if (dividendRepository.existsByExDateOrPayDate(dividend.getExDate(), dividend.getPayDate())) {
-                List<String> errorMessages = Collections.singletonList("An dividend with the same ex date or pay date already exists.");
+                List<String> errorMessages = Collections.singletonList("A dividend with the same ex date or pay date already exists.");
                 LOGGER.error(errorMessages);
                 throw new AlreadyExistsException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
             } else {
@@ -84,9 +84,21 @@ public class DividendServiceImpl implements DividendService {
         if (!dividends.isEmpty()) {
             return dividends.stream().map(dividend -> {
                 Optional<Stock> optionalStock = stockRepository.findById(dividend.getStockId());
-                optionalStock.ifPresent(stock -> dividend.setStockTicker(stock.getStockTicker()));
+                if (optionalStock.isPresent()) {
+                    dividend.setStockTicker(optionalStock.get().getStockTicker());
+                } else {
+                    List<String> errorMessages = Collections.singletonList(String.format(NO_STOCK_FOUND_WITH_ID, dividend.getStockId()));
+                    LOGGER.error(errorMessages);
+                    throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                }
                 Optional<Exchange> optionalExchange = exchangeRepository.findById(dividend.getExchangeId());
-                optionalExchange.ifPresent(exchange -> dividend.setExchange(exchange.getExchange()));
+                if (optionalExchange.isPresent()) {
+                    dividend.setStockTicker(optionalExchange.get().getExchange());
+                } else {
+                    List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_ID, dividend.getExchangeId()));
+                    LOGGER.error(errorMessages);
+                    throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                }
                 return dividendMapper.convertToDto(dividend);
             }).toList();
         } else {
@@ -102,9 +114,21 @@ public class DividendServiceImpl implements DividendService {
         if (optionalDividend.isPresent()) {
             Dividend dividend = optionalDividend.get();
             Optional<Stock> optionalStock = stockRepository.findById(dividend.getStockId());
-            optionalStock.ifPresent(stock -> dividend.setStockTicker(stock.getStockTicker()));
+            if (optionalStock.isPresent()) {
+                dividend.setStockTicker(optionalStock.get().getStockTicker());
+            } else {
+                List<String> errorMessages = Collections.singletonList(String.format(NO_STOCK_FOUND_WITH_ID, dividend.getStockId()));
+                LOGGER.error(errorMessages);
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            }
             Optional<Exchange> optionalExchange = exchangeRepository.findById(dividend.getExchangeId());
-            optionalExchange.ifPresent(exchange -> dividend.setExchange(String.valueOf(exchange.getExchange())));
+            if (optionalExchange.isPresent()) {
+                dividend.setStockTicker(optionalExchange.get().getExchange());
+            } else {
+                List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_ID, dividend.getExchangeId()));
+                LOGGER.error(errorMessages);
+                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            }
             return dividendMapper.convertToDto(dividend);
         } else {
             List<String> errorMessages = Collections.singletonList(String.format(NO_DIVIDEND_FOUND_WITH_ID, dividendId));
@@ -119,9 +143,21 @@ public class DividendServiceImpl implements DividendService {
         if (!dividends.isEmpty()) {
             return dividends.stream().map(dividend -> {
                 Optional<Stock> optionalStock = stockRepository.findById(dividend.getStockId());
-                optionalStock.ifPresent(stock -> dividend.setStockTicker(stock.getStockTicker()));
+                if (optionalStock.isPresent()) {
+                    dividend.setStockTicker(optionalStock.get().getStockTicker());
+                } else {
+                    List<String> errorMessages = Collections.singletonList(String.format(NO_STOCK_FOUND_WITH_ID, dividend.getStockId()));
+                    LOGGER.error(errorMessages);
+                    throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                }
                 Optional<Exchange> optionalExchange = exchangeRepository.findById(dividend.getExchangeId());
-                optionalExchange.ifPresent(exchange -> dividend.setExchange(exchange.getExchange()));
+                if (optionalExchange.isPresent()) {
+                    dividend.setStockTicker(optionalExchange.get().getExchange());
+                } else {
+                    List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_ID, dividend.getExchangeId()));
+                    LOGGER.error(errorMessages);
+                    throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                }
                 return dividendMapper.convertToDto(dividend);
             }).toList();
         } else {
@@ -137,9 +173,21 @@ public class DividendServiceImpl implements DividendService {
         if (!dividends.isEmpty()) {
             return dividends.stream().map(dividend -> {
                 Optional<Stock> optionalStock = stockRepository.findById(dividend.getStockId());
-                optionalStock.ifPresent(stock -> dividend.setStockTicker(stock.getStockTicker()));
+                if (optionalStock.isPresent()) {
+                    dividend.setStockTicker(optionalStock.get().getStockTicker());
+                } else {
+                    List<String> errorMessages = Collections.singletonList(String.format(NO_STOCK_FOUND_WITH_ID, dividend.getStockId()));
+                    LOGGER.error(errorMessages);
+                    throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                }
                 Optional<Exchange> optionalExchange = exchangeRepository.findById(dividend.getExchangeId());
-                optionalExchange.ifPresent(exchange -> dividend.setExchange(exchange.getExchange()));
+                if (optionalExchange.isPresent()) {
+                    dividend.setStockTicker(optionalExchange.get().getExchange());
+                } else {
+                    List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_ID, dividend.getExchangeId()));
+                    LOGGER.error(errorMessages);
+                    throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                }
                 return dividendMapper.convertToDto(dividend);
             }).toList();
         } else {

@@ -3,6 +3,7 @@ package com.example.investmentportfolio.security;
 import com.example.investmentportfolio.repository.UserRepository;
 import com.example.investmentportfolio.util.Constants;
 import com.example.investmentportfolio.util.CustomError;
+import com.example.investmentportfolio.util.NotFoundException;
 import com.example.investmentportfolio.util.ValidationException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
@@ -16,6 +17,8 @@ import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
 import java.util.*;
+
+import static com.example.investmentportfolio.util.Constants.NO_USER_FOUND_WITH_USERNAME;
 
 @Component
 public class JwtTokenProvider {
@@ -31,31 +34,42 @@ public class JwtTokenProvider {
     public String generateJwt(String username) {
         long jwtExpirationMs = (long) 24 * 60 * 60 * 1000; // 1 day expiry time
 //        long jwtExpirationMs = (long) 15 * 60 * 1000; // 15 minutes expiry time
-        List<String> roles = userRepository.findRolesByUsername(username.toUpperCase());
-        List<String> roleList = Arrays.asList(roles.getFirst().split(","));
-        List<String> prefixedRoles = roleList.stream()
-                .map(role -> "ROLE_" + role)
-                .toList();
-        Map<String, List<String>> claims = new HashMap<>();
-        claims.put("roles", prefixedRoles);
-        try {
-            return Jwts
-                    .builder()
-                    .claims(claims) // public or private claims
-                    .subject(username) // registered claim
-                    .issuedAt(new Date(System.currentTimeMillis())) // registered claim
-                    .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs)) // registered claim
-                    .signWith(getSignInKey(), Jwts.SIG.HS256)
-                    .compact();
-        } catch (Exception e) {
-            List<String> errorMessage = Collections.singletonList(e.getMessage());
-            LOGGER.error(errorMessage);
-            throw new ValidationException(new CustomError(Constants.INTERNAL_SERVER_ERROR_ERROR_CODE, errorMessage));
+
+        Optional<Long> optionalUserId = userRepository.findIdByUsername(username.toUpperCase());
+        Long userId;
+        if (optionalUserId.isPresent()) {
+            userId = optionalUserId.get();
+            List<String> roles = userRepository.findRolesByUsername(username.toUpperCase());
+            List<String> roleList = Arrays.asList(roles.getFirst().split(","));
+            List<String> prefixedRoles = roleList.stream()
+                    .map(role -> "ROLE_" + role)
+                    .toList();
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("roles", prefixedRoles);
+            claims.put("userId", userId);
+            try {
+                return Jwts
+                        .builder()
+                        .claims(claims) // public or private claims
+                        .subject(username) // registered claim
+                        .issuedAt(new Date(System.currentTimeMillis())) // registered claim
+                        .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs)) // registered claim
+                        .signWith(getSignInKey(), Jwts.SIG.HS256)
+                        .compact();
+            } catch (Exception e) {
+                List<String> errorMessage = Collections.singletonList(e.getMessage());
+                LOGGER.error(errorMessage);
+                throw new ValidationException(new CustomError(Constants.INTERNAL_SERVER_ERROR_ERROR_CODE, errorMessage));
+            }
+        } else {
+            List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_USERNAME, username));
+            LOGGER.error(errorMessages);
+            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
 
-    private SecretKey getSignInKey() {
+    protected SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
         return Keys.hmacShaKeyFor(keyBytes);
     }
