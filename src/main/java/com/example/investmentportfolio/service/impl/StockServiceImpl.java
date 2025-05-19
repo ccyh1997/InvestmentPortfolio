@@ -7,7 +7,7 @@ import com.example.investmentportfolio.model.Stock;
 import com.example.investmentportfolio.repository.ExchangeRepository;
 import com.example.investmentportfolio.repository.StockRepository;
 import com.example.investmentportfolio.service.StockService;
-import com.example.investmentportfolio.util.*;
+import com.example.investmentportfolio.util.CreateValidation;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.ConstraintViolation;
@@ -23,7 +23,6 @@ import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -47,29 +46,19 @@ public class StockServiceImpl implements StockService {
 
     @Override
     public StockDto createStock(StockDto stockDto) {
-        Set<ConstraintViolation<StockDto>> violations = validator.validate(stockDto, CreateValidation.class);
-        if (!violations.isEmpty()) {
-            List<String> errorMessages = violations.stream().map(ConstraintViolation::getMessage).toList();
-            LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
+        validateRequestDto(stockDto);
+        Stock stock = stockMapper.convertToEntity(stockDto);
+        Optional<Long> optionalId = exchangeRepository.findIdByExchange(stockDto.getExchange().toUpperCase());
+        if (optionalId.isPresent()) {
+            stock.setExchangeId(optionalId.get());
         } else {
-            Stock stock = stockMapper.convertToEntity(stockDto);
-            Optional<Long> optionalId = exchangeRepository.findIdByExchange(stockDto.getExchange().toUpperCase());
-            if (optionalId.isPresent()) {
-                stock.setExchangeId(optionalId.get());
-            } else {
-                List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_NAME, stockDto.getExchange()));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
-            }
-            if (stockRepository.existsByStockTickerIgnoreCase(stock.getStockTicker())) {
-                List<String> errorMessages = Collections.singletonList("A stock with the same ticker already exists.");
-                LOGGER.error(errorMessages);
-                throw new AlreadyExistsException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
-            } else {
-                stockRepository.save(stock);
-                return stockMapper.convertToDto(stock);
-            }
+            throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_NAME, stockDto.getExchange());
+        }
+        if (stockRepository.existsByStockTickerIgnoreCase(stock.getStockTicker())) {
+            throw returnAlreadyExistsException(LOGGER, STOCK_WITH_SAME_TICKER_ALREADY_EXISTS);
+        } else {
+            stockRepository.save(stock);
+            return stockMapper.convertToDto(stock);
         }
     }
 
@@ -79,13 +68,15 @@ public class StockServiceImpl implements StockService {
         if (!stocks.isEmpty()) {
             return stocks.stream().map(stock -> {
                 Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
-                optionalExchange.ifPresent(exchange -> stock.setExchange(String.valueOf(exchange.getExchange())));
+                if (optionalExchange.isPresent()) {
+                    stock.setStockTicker(optionalExchange.get().getExchange());
+                } else {
+                    throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_ID, stock.getExchangeId());
+                }
                 return stockMapper.convertToDto(stock);
             }).toList();
         } else {
-            List<String> errorMessages = Collections.singletonList("No stock(s) found.");
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_STOCKS_FOUND);
         }
     }
 
@@ -95,12 +86,14 @@ public class StockServiceImpl implements StockService {
         if (optionalStock.isPresent()) {
             Stock stock = optionalStock.get();
             Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
-            optionalExchange.ifPresent(exchange -> stock.setExchange(String.valueOf(exchange.getExchange())));
+            if (optionalExchange.isPresent()) {
+                stock.setStockTicker(optionalExchange.get().getExchange());
+            } else {
+                throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_ID, stock.getExchangeId());
+            }
             return stockMapper.convertToDto(stock);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_STOCK_FOUND_WITH_ID, stockId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_ID, stockId);
         }
     }
 
@@ -110,12 +103,14 @@ public class StockServiceImpl implements StockService {
         if (optionalStock.isPresent()) {
             Stock stock = optionalStock.get();
             Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
-            optionalExchange.ifPresent(exchange -> stock.setExchange(String.valueOf(exchange.getExchange())));
+            if (optionalExchange.isPresent()) {
+                stock.setStockTicker(optionalExchange.get().getExchange());
+            } else {
+                throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_ID, stock.getExchangeId());
+            }
             return stockMapper.convertToDto(stock);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_STOCK_FOUND_WITH_TICKER, stockTicker));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_TICKER, stockTicker);
         }
     }
 
@@ -125,17 +120,21 @@ public class StockServiceImpl implements StockService {
         if (!stocks.isEmpty()) {
             return stocks.stream().map(stock -> {
                 Optional<Exchange> optionalExchange = exchangeRepository.findById(stock.getExchangeId());
-                optionalExchange.ifPresent(exchange -> stock.setExchange(String.valueOf(exchange.getExchange())));
+                if (optionalExchange.isPresent()) {
+                    stock.setStockTicker(optionalExchange.get().getExchange());
+                } else {
+                    throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_ID, stock.getExchangeId());
+                }
                 return stockMapper.convertToDto(stock);
             }).toList();
         } else {
-            List<String> errorMessages = Collections.singletonList("No stocks were found matching the provided filters.");
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_STOCKS_FOUND_WITH_FILTERS);
         }
     }
 
     @Override
     public StockDto updateStockById(Long stockId, StockDto stockDto) {
+        validateRequestDto(stockDto);
         Optional<Stock> optionalStock = stockRepository.findById(stockId);
         if (optionalStock.isPresent()) {
             Stock updatedStock = stockMapper.updateEntityWithDto(stockDto, optionalStock.get());
@@ -143,21 +142,18 @@ public class StockServiceImpl implements StockService {
             if (optionalId.isPresent()) {
                 updatedStock.setExchangeId(optionalId.get());
             } else {
-                List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_NAME, stockDto.getExchange()));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_NAME, stockDto.getExchange());
             }
             stockRepository.save(updatedStock);
             return stockMapper.convertToDto(updatedStock);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_STOCK_FOUND_WITH_ID, stockId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_ID, stockId);
         }
     }
 
     @Override
     public StockDto updateStockByTicker(String stockTicker, StockDto stockDto) {
+        validateRequestDto(stockDto);
         Optional<Stock> optionalStock = stockRepository.findByStockTickerIgnoreCase(stockTicker);
         if (optionalStock.isPresent()) {
             Stock updatedStock = stockMapper.updateEntityWithDto(stockDto, optionalStock.get());
@@ -165,16 +161,12 @@ public class StockServiceImpl implements StockService {
             if (optionalId.isPresent()) {
                 updatedStock.setExchangeId(optionalId.get());
             } else {
-                List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_NAME, stockDto.getExchange()));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_NAME, stockDto.getExchange());
             }
             stockRepository.save(updatedStock);
             return stockMapper.convertToDto(updatedStock);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_STOCK_FOUND_WITH_TICKER, stockTicker));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_TICKER, stockTicker);
         }
     }
 
@@ -185,9 +177,7 @@ public class StockServiceImpl implements StockService {
         if (!stocks.isEmpty()) {
             stockRepository.deleteAll();
         } else {
-            List<String> errorMessages = Collections.singletonList("No stock(s) found.");
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_STOCKS_FOUND);
         }
     }
 
@@ -198,9 +188,7 @@ public class StockServiceImpl implements StockService {
         if (optionalStock.isPresent()) {
             stockRepository.deleteById(stockId);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_STOCK_FOUND_WITH_ID, stockId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_ID, stockId);
         }
     }
 
@@ -212,9 +200,7 @@ public class StockServiceImpl implements StockService {
             stockRepository.deleteByStockTickerIgnoreCase(stockTicker);
             return stockMapper.convertToDto(optionalStock.get());
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_STOCK_FOUND_WITH_TICKER, stockTicker));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_TICKER, stockTicker);
         }
     }
 
@@ -222,42 +208,41 @@ public class StockServiceImpl implements StockService {
     @Transactional
     public void updateLiveStockPrices() throws IOException, URISyntaxException {
         List<StockDto> stockDtos = getAllStocks();
-        if (!stockDtos.isEmpty()) {
-            for (StockDto stockDto : stockDtos) {
-                String stockTicker = stockDto.getStockTicker();
-                String exchange = stockDto.getExchange();
-                String suffix = exchangeRepository.findSuffixByExchange(exchange);
-                Optional<Long> optionalExchangeId = exchangeRepository.findIdByExchange(exchange);
-                if (optionalExchangeId.isPresent()) {
-                    BigDecimal lastPrice = getLastPriceForStock(stockTicker, suffix);
-                    stockRepository.updateLastPriceByStockTickerAndExchange(lastPrice, stockTicker, optionalExchangeId.get());
-                } else {
-                    List<String> errorMessages = Collections.singletonList(String.format("Stock with ticker %s cannot be found in exchange: %s", stockTicker, exchange));
-                    LOGGER.error(errorMessages);
-                    throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
-                }
+        for (StockDto stockDto : stockDtos) {
+            String stockTicker = stockDto.getStockTicker();
+            String exchange = stockDto.getExchange();
+            String suffix = exchangeRepository.findSuffixByExchange(exchange);
+            Optional<Long> optionalExchangeId = exchangeRepository.findIdByExchange(exchange);
+            if (optionalExchangeId.isPresent()) {
+                BigDecimal lastPrice = getLastPriceForStock(stockTicker, suffix);
+                stockRepository.updateLastPriceByStockTickerAndExchange(lastPrice, stockTicker, optionalExchangeId.get());
+            } else {
+                throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_IN_EXCHANGE, stockTicker, exchange);
             }
-        } else {
-            List<String> errorMessages = Collections.singletonList("No stocks found.");
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         }
     }
 
     private BigDecimal getLastPriceForStock(String stockTicker, String suffix) throws IOException, URISyntaxException {
         String stockTickerAndSuffix = (suffix != null) ? stockTicker + suffix : stockTicker;
-        String urlString = "https://query1.finance.yahoo.com/v8/finance/chart/" + stockTickerAndSuffix;
+        String urlString = YAHOO_FINANCE_URL + stockTickerAndSuffix;
         URI uri = new URI(urlString);
         HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
-        connection.setRequestMethod("GET");
+        connection.setRequestMethod(GET);
         ObjectMapper mapper = new ObjectMapper();
         JsonNode rootNode = mapper.readTree(connection.getInputStream());
-        JsonNode resultNode = rootNode.path("chart").path("result").get(0);
-        JsonNode metaNode = resultNode.path("meta");
-        BigDecimal regularMarketPrice = metaNode.path("regularMarketPrice").decimalValue();
-        String currency = metaNode.path("currency").asText();
+        JsonNode resultNode = rootNode.path(CHART).path(RESULT).get(0);
+        JsonNode metaNode = resultNode.path(META);
+        BigDecimal lastPrice = metaNode.path(REGULAR_MARKET_PRICE).decimalValue();
+        String currency = metaNode.path(CURRENCY).asText();
         connection.disconnect();
-        LOGGER.info("{}: {} {}", stockTicker, regularMarketPrice, currency);
-        return regularMarketPrice;
+        LOGGER.info(THREE_PLACEHOLDERS_LOG, stockTicker, lastPrice, currency);
+        return lastPrice;
+    }
+
+    private void validateRequestDto(StockDto stockDto) {
+        Set<ConstraintViolation<StockDto>> violations = validator.validate(stockDto, CreateValidation.class);
+        if (!violations.isEmpty()) {
+            throw returnValidationException(LOGGER, violations);
+        }
     }
 }

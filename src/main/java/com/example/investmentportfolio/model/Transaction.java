@@ -46,8 +46,8 @@ public class Transaction {
     private String unitPrice;
 
     @Column
-    private String currency;
+    private String fees;
 
     @Column
-    private String fees;
+    private String currency;
 }

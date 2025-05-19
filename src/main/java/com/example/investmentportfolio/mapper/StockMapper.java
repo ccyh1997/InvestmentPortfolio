@@ -48,7 +48,7 @@ public interface StockMapper {
         if (value == null || value.isEmpty()) {
             return value;
         }
-        return Arrays.stream(value.split("\\s+")).map(word -> !word.isEmpty() ? Character.toUpperCase(word.charAt(0)) + word.substring(1) : "").collect(Collectors.joining(" "));
+        return Arrays.stream(value.split("\\s+")).map(word -> Character.toUpperCase(word.charAt(0)) + word.substring(1)).collect(Collectors.joining(" "));
     }
 
     @Named("trimTrailingZeros")

@@ -5,7 +5,7 @@ import com.example.investmentportfolio.mapper.RateMapper;
 import com.example.investmentportfolio.model.Rate;
 import com.example.investmentportfolio.repository.RateRepository;
 import com.example.investmentportfolio.service.RateService;
-import com.example.investmentportfolio.util.*;
+import com.example.investmentportfolio.util.CreateValidation;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -14,12 +14,11 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import static com.example.investmentportfolio.util.Constants.NO_RATE_FOUND_WITH_ID;
+import static com.example.investmentportfolio.util.Constants.*;
 
 @Service
 public class RateServiceImpl implements RateService {
@@ -36,21 +35,13 @@ public class RateServiceImpl implements RateService {
 
     @Override
     public RateDto createRate(RateDto rateDto) {
-        Set<ConstraintViolation<RateDto>> violations = validator.validate(rateDto, CreateValidation.class);
-        if (!violations.isEmpty()) {
-            List<String> errorMessages = violations.stream().map(ConstraintViolation::getMessage).toList();
-            LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
+        validateRequestDto(rateDto);
+        Rate rate = rateMapper.convertToEntity(rateDto);
+        if (rateRepository.existsByRateNameIgnoreCase(rate.getRateName())) {
+            throw returnAlreadyExistsException(LOGGER, RATE_ALREADY_EXISTS);
         } else {
-            Rate rate = rateMapper.convertToEntity(rateDto);
-            if (rateRepository.existsByRateNameIgnoreCase(rate.getRateName())) {
-                List<String> errorMessages = Collections.singletonList("A rate with the same name already exists.");
-                LOGGER.error(errorMessages);
-                throw new AlreadyExistsException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
-            } else {
-                rateRepository.save(rate);
-                return rateMapper.convertToDto(rate);
-            }
+            rateRepository.save(rate);
+            return rateMapper.convertToDto(rate);
         }
     }
 
@@ -60,9 +51,7 @@ public class RateServiceImpl implements RateService {
         if (!rates.isEmpty()) {
             return rates.stream().map(rateMapper::convertToDto).toList();
         } else {
-            List<String> errorMessages = Collections.singletonList("No rate(s) found.");
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_RATES_FOUND);
         }
     }
 
@@ -72,23 +61,20 @@ public class RateServiceImpl implements RateService {
         if (optionalRate.isPresent()) {
             return rateMapper.convertToDto(optionalRate.get());
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_RATE_FOUND_WITH_ID, rateId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_RATE_FOUND_WITH_ID, rateId);
         }
     }
 
     @Override
     public RateDto updateRateById(Long rateId, RateDto rateDto) {
+        validateRequestDto(rateDto);
         Optional<Rate> optionalRate = rateRepository.findById(rateId);
         if (optionalRate.isPresent()) {
             Rate updatedRate = rateMapper.updateEntityWithDto(rateDto, optionalRate.get());
             rateRepository.save(updatedRate);
             return rateMapper.convertToDto(updatedRate);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_RATE_FOUND_WITH_ID, rateId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_RATE_FOUND_WITH_ID, rateId);
         }
     }
 
@@ -99,9 +85,7 @@ public class RateServiceImpl implements RateService {
         if (!rates.isEmpty()) {
             rateRepository.deleteAll();
         } else {
-            List<String> errorMessages = Collections.singletonList("No rate(s) found.");
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_RATES_FOUND);
         }
     }
 
@@ -112,9 +96,14 @@ public class RateServiceImpl implements RateService {
         if (optionalRate.isPresent()) {
             rateRepository.deleteById(rateId);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_RATE_FOUND_WITH_ID, rateId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_RATE_FOUND_WITH_ID, rateId);
+        }
+    }
+
+    private void validateRequestDto(RateDto rateDto) {
+        Set<ConstraintViolation<RateDto>> violations = validator.validate(rateDto, CreateValidation.class);
+        if (!violations.isEmpty()) {
+            throw returnValidationException(LOGGER, violations);
         }
     }
 }

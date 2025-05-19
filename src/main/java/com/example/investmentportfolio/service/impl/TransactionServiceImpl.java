@@ -10,7 +10,7 @@ import com.example.investmentportfolio.repository.StockRepository;
 import com.example.investmentportfolio.repository.TransactionRepository;
 import com.example.investmentportfolio.repository.UserRepository;
 import com.example.investmentportfolio.service.TransactionService;
-import com.example.investmentportfolio.util.*;
+import com.example.investmentportfolio.util.CreateValidation;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -19,12 +19,11 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import static com.example.investmentportfolio.util.Constants.NO_TRANSACTION_FOUND_WITH_ID;
+import static com.example.investmentportfolio.util.Constants.*;
 
 @Service
 public class TransactionServiceImpl implements TransactionService {
@@ -47,38 +46,26 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public TransactionDto createTransaction(TransactionDto transactionDto) {
-        Set<ConstraintViolation<TransactionDto>> violations = validator.validate(transactionDto, CreateValidation.class);
-        if (!violations.isEmpty()) {
-            List<String> errorMessages = violations.stream().map(ConstraintViolation::getMessage).toList();
-            LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
+        validateRequestDto(transactionDto);
+        Transaction transaction = transactionMapper.convertToEntity(transactionDto);
+        Optional<Long> optionalUserId = userRepository.findIdByUsername(transactionDto.getUsername().toUpperCase());
+        if (optionalUserId.isPresent()) {
+            transaction.setUserId(optionalUserId.get());
         } else {
-            Transaction transaction = transactionMapper.convertToEntity(transactionDto);
-            Optional<Long> optionalUserId = userRepository.findIdByUsername(transactionDto.getUsername().toUpperCase());
-            if (optionalUserId.isPresent()) {
-                transaction.setUserId(optionalUserId.get());
-            } else {
-                List<String> errorMessages = Collections.singletonList(String.format("No user found with username: %s", transactionDto.getUsername()));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
-            }
-            Optional<Long> optionalExchangeId = exchangeRepository.findIdByExchange(transactionDto.getExchange().toUpperCase());
-            if (optionalExchangeId.isEmpty()) {
-                List<String> errorMessages = Collections.singletonList(String.format("No exchange found with name: %s", transactionDto.getExchange()));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
-            }
-            Optional<Long> optionalStockId = stockRepository.findIdByTickerAndExchangeId(transactionDto.getStockTicker().toUpperCase(), optionalExchangeId.get());
-            if (optionalStockId.isPresent()) {
-                transaction.setStockId(optionalStockId.get());
-            } else {
-                List<String> errorMessages = Collections.singletonList(String.format("Stock ticker %s cannot be found in exchange: %s", transactionDto.getStockTicker(), transactionDto.getExchange()));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
-            }
-            transactionRepository.save(transaction);
-            return transactionMapper.convertToDto(transaction);
+            throw returnNotFoundException(LOGGER, NO_USER_FOUND_WITH_USERNAME, transactionDto.getUsername());
         }
+        Optional<Long> optionalExchangeId = exchangeRepository.findIdByExchange(transactionDto.getExchange().toUpperCase());
+        if (optionalExchangeId.isEmpty()) {
+            throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_NAME, transactionDto.getExchange());
+        }
+        Optional<Long> optionalStockId = stockRepository.findIdByTickerAndExchangeId(transactionDto.getStockTicker().toUpperCase(), optionalExchangeId.get());
+        if (optionalStockId.isPresent()) {
+            transaction.setStockId(optionalStockId.get());
+        } else {
+            throw returnNotFoundException(LOGGER, STOCK_TICKER_NOT_FOUND_IN_EXCHANGE, transactionDto.getStockTicker(), transactionDto.getExchange());
+        }
+        transactionRepository.save(transaction);
+        return transactionMapper.convertToDto(transaction);
     }
 
     @Override
@@ -87,17 +74,27 @@ public class TransactionServiceImpl implements TransactionService {
         if (!transactions.isEmpty()) {
             return transactions.stream().map(transaction -> {
                 Optional<User> optionalUser = userRepository.findById(transaction.getUserId());
-                optionalUser.ifPresent(user -> transaction.setUsername(String.valueOf(user.getUsername())));
+                if (optionalUser.isPresent()) {
+                    transaction.setUsername(optionalUser.get().getUsername());
+                } else {
+                    throw returnNotFoundException(LOGGER, NO_USER_FOUND_WITH_ID, transaction.getUserId());
+                }
                 Optional<Stock> optionalStock = stockRepository.findById(transaction.getStockId());
-                optionalStock.ifPresent(stock -> transaction.setStockTicker(stock.getStockTicker()));
+                if (optionalStock.isPresent()) {
+                    transaction.setStockTicker(optionalStock.get().getStockTicker());
+                } else {
+                    throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_ID, transaction.getStockId());
+                }
                 Optional<String> optionalExchange = stockRepository.findExchangeByStockId(transaction.getStockId());
-                optionalExchange.ifPresent(transaction::setExchange);
+                if (optionalExchange.isPresent()) {
+                    transaction.setExchange(optionalExchange.get());
+                } else {
+                    throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_STOCK_ID, transaction.getStockId());
+                }
                 return transactionMapper.convertToDto(transaction);
             }).toList();
         } else {
-            List<String> errorMessages = Collections.singletonList("No transaction(s) found.");
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_TRANSACTIONS_FOUND);
         }
     }
 
@@ -107,16 +104,26 @@ public class TransactionServiceImpl implements TransactionService {
         if (optionalTransaction.isPresent()) {
             Transaction transaction = optionalTransaction.get();
             Optional<User> optionalUser = userRepository.findById(transaction.getUserId());
-            optionalUser.ifPresent(user -> transaction.setUsername(String.valueOf(user.getUsername())));
+            if (optionalUser.isPresent()) {
+                transaction.setUsername(optionalUser.get().getUsername());
+            } else {
+                throw returnNotFoundException(LOGGER, NO_USER_FOUND_WITH_ID, transaction.getUserId());
+            }
             Optional<Stock> optionalStock = stockRepository.findById(transaction.getStockId());
-            optionalStock.ifPresent(stock -> transaction.setStockTicker(stock.getStockTicker()));
+            if (optionalStock.isPresent()) {
+                transaction.setStockTicker(optionalStock.get().getStockTicker());
+            } else {
+                throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_ID, transaction.getStockId());
+            }
             Optional<String> optionalExchange = stockRepository.findExchangeByStockId(transaction.getStockId());
-            optionalExchange.ifPresent(transaction::setExchange);
+            if (optionalExchange.isPresent()) {
+                transaction.setExchange(optionalExchange.get());
+            } else {
+                throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_STOCK_ID, transaction.getStockId());
+            }
             return transactionMapper.convertToDto(transaction);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_TRANSACTION_FOUND_WITH_ID, transactionId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_TRANSACTION_FOUND_WITH_ID, transactionId);
         }
     }
 
@@ -126,22 +133,33 @@ public class TransactionServiceImpl implements TransactionService {
         if (!transactions.isEmpty()) {
             return transactions.stream().map(transaction -> {
                 Optional<User> optionalUser = userRepository.findById(transaction.getUserId());
-                optionalUser.ifPresent(user -> transaction.setUsername(String.valueOf(user.getUsername())));
+                if (optionalUser.isPresent()) {
+                    transaction.setUsername(optionalUser.get().getUsername());
+                } else {
+                    throw returnNotFoundException(LOGGER, NO_USER_FOUND_WITH_ID, transaction.getUserId());
+                }
                 Optional<Stock> optionalStock = stockRepository.findById(transaction.getStockId());
-                optionalStock.ifPresent(stock -> transaction.setStockTicker(stock.getStockTicker()));
+                if (optionalStock.isPresent()) {
+                    transaction.setStockTicker(optionalStock.get().getStockTicker());
+                } else {
+                    throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_ID, transaction.getStockId());
+                }
                 Optional<String> optionalExchange = stockRepository.findExchangeByStockId(transaction.getStockId());
-                optionalExchange.ifPresent(transaction::setExchange);
+                if (optionalExchange.isPresent()) {
+                    transaction.setExchange(optionalExchange.get());
+                } else {
+                    throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_STOCK_ID, transaction.getStockId());
+                }
                 return transactionMapper.convertToDto(transaction);
             }).toList();
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format("No transactions found for user id: %d", userId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_TRANSACTION_FOUND_FOR_USER_WITH_ID, userId);
         }
     }
 
     @Override
     public TransactionDto updateTransactionById(Long transactionId, TransactionDto transactionDto) {
+        validateRequestDto(transactionDto);
         Optional<Transaction> optionalTransaction = transactionRepository.findById(transactionId);
         if (optionalTransaction.isPresent()) {
             Transaction updatedTransaction = transactionMapper.updateEntityWithDto(transactionDto, optionalTransaction.get());
@@ -149,30 +167,22 @@ public class TransactionServiceImpl implements TransactionService {
             if (optionalUserId.isPresent()) {
                 updatedTransaction.setUserId(optionalUserId.get());
             } else {
-                List<String> errorMessages = Collections.singletonList(String.format("No user found with username: %s", transactionDto.getUsername()));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw returnNotFoundException(LOGGER, NO_USER_FOUND_WITH_USERNAME, transactionDto.getUsername());
             }
             Optional<Long> optionalExchangeId = exchangeRepository.findIdByExchange(transactionDto.getExchange().toUpperCase());
             if (optionalExchangeId.isEmpty()) {
-                List<String> errorMessages = Collections.singletonList(String.format("No exchange found with name: %s", transactionDto.getExchange()));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_NAME, transactionDto.getExchange());
             }
             Optional<Long> optionalStockId = stockRepository.findIdByTickerAndExchangeId(transactionDto.getStockTicker().toUpperCase(), optionalExchangeId.get());
             if (optionalStockId.isPresent()) {
                 updatedTransaction.setStockId(optionalStockId.get());
             } else {
-                List<String> errorMessages = Collections.singletonList(String.format("Stock ticker %s cannot be found in exchange: %s", transactionDto.getStockTicker(), transactionDto.getExchange()));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw returnNotFoundException(LOGGER, STOCK_TICKER_NOT_FOUND_IN_EXCHANGE, transactionDto.getStockTicker(), transactionDto.getExchange());
             }
             transactionRepository.save(updatedTransaction);
             return transactionMapper.convertToDto(updatedTransaction);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_TRANSACTION_FOUND_WITH_ID, transactionId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_TRANSACTION_FOUND_WITH_ID, transactionId);
         }
     }
 
@@ -183,9 +193,7 @@ public class TransactionServiceImpl implements TransactionService {
         if (!transactions.isEmpty()) {
             transactionRepository.deleteAll();
         } else {
-            List<String> errorMessages = Collections.singletonList("No transaction(s) found.");
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_TRANSACTIONS_FOUND);
         }
     }
 
@@ -196,9 +204,14 @@ public class TransactionServiceImpl implements TransactionService {
         if (optionalDividend.isPresent()) {
             transactionRepository.deleteById(transactionId);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_TRANSACTION_FOUND_WITH_ID, transactionId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, String.format(NO_TRANSACTION_FOUND_WITH_ID, transactionId));
+        }
+    }
+
+    private void validateRequestDto(TransactionDto transactionDto) {
+        Set<ConstraintViolation<TransactionDto>> violations = validator.validate(transactionDto, CreateValidation.class);
+        if (!violations.isEmpty()) {
+            throw returnValidationException(LOGGER, violations);
         }
     }
 }

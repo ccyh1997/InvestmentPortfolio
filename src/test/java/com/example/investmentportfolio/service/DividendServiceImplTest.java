@@ -12,9 +12,6 @@ import com.example.investmentportfolio.service.impl.DividendServiceImpl;
 import com.example.investmentportfolio.util.AlreadyExistsException;
 import com.example.investmentportfolio.util.NotFoundException;
 import com.example.investmentportfolio.util.ValidationException;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,6 +29,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class DividendServiceImplTest {
+
     @Mock
     private DividendRepository dividendRepository;
 
@@ -46,13 +44,6 @@ class DividendServiceImplTest {
 
     @InjectMocks
     private DividendServiceImpl dividendService;
-
-    private Validator validator;
-
-    @BeforeEach
-    void setUp() {
-        validator = Validation.buildDefaultValidatorFactory().getValidator();
-    }
 
     @Test
     void givenValidRequest_whenCreateDividend_thenCreateDividend() {
@@ -74,9 +65,7 @@ class DividendServiceImplTest {
     @Test
     void givenBadRequest_whenCreateDividend_thenThrowValidationException() {
         DividendDto requestDividendDto = new DividendDto("D05", "", "2023-08-17", "2023-08-30", "0.0305");
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            dividendService.createDividend(requestDividendDto);
-        });
+        ValidationException exception = assertThrows(ValidationException.class, () -> dividendService.createDividend(requestDividendDto));
         assertEquals(BAD_REQUEST_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("Exchange name cannot be blank.", exception.getError().getErrorMessages().getFirst());
     }
@@ -85,9 +74,7 @@ class DividendServiceImplTest {
     void givenExchangeDoesNotExist_whenCreateDividend_thenThrowNotFoundException() {
         DividendDto requestDividendDto = new DividendDto("D05", "SGX", "2023-08-17", "2023-08-30", "0.0305");
         when(exchangeRepository.findIdByExchange(requestDividendDto.getExchange())).thenReturn(Optional.empty());
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.createDividend(requestDividendDto);
-        });
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> dividendService.createDividend(requestDividendDto));
         assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("No exchange found with name: SGX", exception.getError().getErrorMessages().getFirst());
     }
@@ -104,9 +91,7 @@ class DividendServiceImplTest {
         when(exchangeRepository.findIdByExchange(requestDividendDto.getExchange())).thenReturn(Optional.of(1L));
         when(dividendMapper.convertToEntity(requestDividendDto)).thenReturn(dividend);
         when(stockRepository.findIdByTickerAndExchangeId(requestDividendDto.getStockTicker().toUpperCase(), 1L)).thenReturn(Optional.empty());
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.createDividend(requestDividendDto);
-        });
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> dividendService.createDividend(requestDividendDto));
         assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("Stock ticker D05 cannot be found in exchange: SGX", exception.getError().getErrorMessages().getFirst());
     }
@@ -124,9 +109,7 @@ class DividendServiceImplTest {
         when(dividendMapper.convertToEntity(requestDividendDto)).thenReturn(dividend);
         when(stockRepository.findIdByTickerAndExchangeId(requestDividendDto.getStockTicker().toUpperCase(), 1L)).thenReturn(Optional.of(1L));
         when(dividendRepository.existsByExDateOrPayDate(dividend.getExDate(), dividend.getPayDate())).thenReturn(true);
-        AlreadyExistsException exception = assertThrows(AlreadyExistsException.class, () -> {
-            dividendService.createDividend(requestDividendDto);
-        });
+        AlreadyExistsException exception = assertThrows(AlreadyExistsException.class, () -> dividendService.createDividend(requestDividendDto));
         assertEquals(BAD_REQUEST_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("A dividend with the same ex date or pay date already exists.", exception.getError().getErrorMessages().getFirst());
     }
@@ -137,7 +120,7 @@ class DividendServiceImplTest {
         Dividend dividend2 = new Dividend(2L, 2L, "OV8", 1L, "SGX", "2023-08-17", "2023-08-30", "0.0305");
         Stock stock1 = new Stock(1L, "D05", "DBS Group Holdings Ltd", "Equity", 1L, "SGX", "43.62", "SGD", "Y", "N");
         Stock stock2 = new Stock(2L, "OV8", "Sheng Siong Group Ltd", "Equity", 1L, "SGX", "1.5306078", "SGD", "Y", "N");
-        Exchange exchange = new Exchange(1L, "SGX", "SG", ",SI");
+        Exchange exchange = new Exchange(1L, "SGX", "SG", ".SI");
         List<Dividend> dividends = List.of(dividend1, dividend2);
         when(dividendRepository.findAll()).thenReturn(dividends);
         when(stockRepository.findById(dividend1.getStockId())).thenReturn(Optional.of(stock1));
@@ -153,9 +136,7 @@ class DividendServiceImplTest {
         List<Dividend> dividends = List.of(dividend);
         when(dividendRepository.findAll()).thenReturn(dividends);
         when(stockRepository.findById(dividend.getStockId())).thenReturn(Optional.empty());
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.getAllDividends();
-        });
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> dividendService.getAllDividends());
         assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("No stock found with id: 1", exception.getError().getErrorMessages().getFirst());
     }
@@ -168,27 +149,23 @@ class DividendServiceImplTest {
         when(dividendRepository.findAll()).thenReturn(dividends);
         when(stockRepository.findById(dividend.getStockId())).thenReturn(Optional.of(stock));
         when(exchangeRepository.findById(dividend.getExchangeId())).thenReturn(Optional.empty());
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.getAllDividends();
-        });
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> dividendService.getAllDividends());
         assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("No exchange found with id: 1", exception.getError().getErrorMessages().getFirst());
     }
 
     @Test
-    void givenDividendsDoNotExist_whenGetAllDividends_thenThrowNotFoundException() {
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-           dividendService.getAllDividends();
-        });
-        assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
-        assertEquals("No dividend(s) found.", exception.getError().getErrorMessages().getFirst());
+    void givenDividendsDoNotExist_whenGetAllDividends_thenReturnEmptyList() {
+        when(dividendRepository.findAll()).thenReturn(List.of());
+        List<DividendDto> dividendDtos = dividendService.getAllDividends();
+        assertEquals(0, dividendDtos.size());
     }
 
     @Test
     void givenDividendExists_whenGetDividendById_thenReturnDividend() {
         Dividend dividend = new Dividend(1L, 1L, "D05", 1L, "SGX", "2023-08-17", "2023-08-30", "0.0305");
         Stock stock = new Stock(1L, "D05", "DBS Group Holdings Ltd", "Equity", 1L, "SGX", "43.62", "SGD", "Y", "N");
-        Exchange exchange = new Exchange(1L, "SGX", "SG", ",SI");
+        Exchange exchange = new Exchange(1L, "SGX", "SG", ".SI");
         when(dividendRepository.findById(dividend.getDividendId())).thenReturn(Optional.of(dividend));
         when(stockRepository.findById(dividend.getStockId())).thenReturn(Optional.of(stock));
         when(exchangeRepository.findById(dividend.getExchangeId())).thenReturn(Optional.of(exchange));
@@ -203,9 +180,7 @@ class DividendServiceImplTest {
         Dividend dividend = new Dividend(1L, 1L, "D05", 1L, "SGX", "2023-08-17", "2023-08-30", "0.0305");
         when(dividendRepository.findById(dividend.getDividendId())).thenReturn(Optional.of(dividend));
         when(stockRepository.findById(dividend.getStockId())).thenReturn(Optional.empty());
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.getDividendById(1L);
-        });
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> dividendService.getDividendById(1L));
         assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("No stock found with id: 1", exception.getError().getErrorMessages().getFirst());
     }
@@ -217,27 +192,23 @@ class DividendServiceImplTest {
         when(dividendRepository.findById(dividend.getDividendId())).thenReturn(Optional.of(dividend));
         when(stockRepository.findById(dividend.getStockId())).thenReturn(Optional.of(stock));
         when(exchangeRepository.findById(dividend.getExchangeId())).thenReturn(Optional.empty());
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.getDividendById(1L);
-        });
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> dividendService.getDividendById(1L));
         assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("No exchange found with id: 1", exception.getError().getErrorMessages().getFirst());
     }
 
     @Test
     void givenDividendDoesNotExist_whenGetDividendById_thenThrowNotFoundException() {
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.getDividendById(1L);
-        });
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> dividendService.getDividendById(1L));
         assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("No dividend found with id: 1", exception.getError().getErrorMessages().getFirst());
     }
 
     @Test
-    void givenDividendExists_whenGetDividendByStockId_thenReturnDividend() {
+    void givenDividendExists_whenGetDividendsByStockId_thenReturnDividend() {
         Dividend dividend = new Dividend(1L, 1L, "D05", 1L, "SGX", "2023-08-17", "2023-08-30", "0.0305");
         Stock stock = new Stock(1L, "D05", "DBS Group Holdings Ltd", "Equity", 1L, "SGX", "43.62", "SGD", "Y", "N");
-        Exchange exchange = new Exchange(1L, "SGX", "SG", ",SI");
+        Exchange exchange = new Exchange(1L, "SGX", "SG", ".SI");
         List<Dividend> dividends = List.of(dividend);
         when(dividendRepository.findByStockId(dividend.getStockId())).thenReturn(dividends);
         when(stockRepository.findById(dividend.getStockId())).thenReturn(Optional.of(stock));
@@ -249,47 +220,41 @@ class DividendServiceImplTest {
     }
 
     @Test
-    void givenStockTickerDoesNotExist_whenGetDividendByStockId_thenThrowNotFoundException() {
+    void givenStockTickerDoesNotExist_whenGetDividendsByStockId_thenThrowNotFoundException() {
         Dividend dividend = new Dividend(1L, 1L, "D05", 1L, "SGX", "2023-08-17", "2023-08-30", "0.0305");
         List<Dividend> dividends = List.of(dividend);
         when(dividendRepository.findByStockId(dividend.getStockId())).thenReturn(dividends);
         when(stockRepository.findById(dividend.getStockId())).thenReturn(Optional.empty());
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.getDividendsByStockId(1L);
-        });
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> dividendService.getDividendsByStockId(1L));
         assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("No stock found with id: 1", exception.getError().getErrorMessages().getFirst());
     }
 
     @Test
-    void givenExchangeDoesNotExist_whenGetDividendByStockId_thenThrowNotFoundException() {
+    void givenExchangeDoesNotExist_whenGetDividendsByStockId_thenThrowNotFoundException() {
         Dividend dividend = new Dividend(1L, 1L, "D05", 1L, "SGX", "2023-08-17", "2023-08-30", "0.0305");
         Stock stock = new Stock(1L, "D05", "DBS Group Holdings Ltd", "Equity", 1L, "SGX", "43.62", "SGD", "Y", "N");
         List<Dividend> dividends = List.of(dividend);
         when(dividendRepository.findByStockId(dividend.getStockId())).thenReturn(dividends);
         when(stockRepository.findById(dividend.getStockId())).thenReturn(Optional.of(stock));
         when(exchangeRepository.findById(dividend.getExchangeId())).thenReturn(Optional.empty());
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.getDividendsByStockId(1L);
-        });
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> dividendService.getDividendsByStockId(1L));
         assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("No exchange found with id: 1", exception.getError().getErrorMessages().getFirst());
     }
 
     @Test
-    void givenDividendDoesNotExist_whenGetDividendByStockId_thenThrowNotFoundException() {
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.getDividendsByStockId(1L);
-        });
-        assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
-        assertEquals("No dividend(s) found with stock id: 1", exception.getError().getErrorMessages().getFirst());
+    void givenDividendDoesNotExist_whenGetDividendsByStockId_thenThrowNotFoundException() {
+        when(dividendRepository.findByStockId(any())).thenReturn(List.of());
+        List<DividendDto> dividendDtos = dividendService.getDividendsByStockId(1L);
+        assertEquals(0, dividendDtos.size());
     }
 
     @Test
     void givenDividendsExist_whenGetDividendByExchangeId_thenReturnDividends() {
         Dividend dividend = new Dividend(1L, 1L, "D05", 1L, "SGX", "2023-08-17", "2023-08-30", "0.0305");
         Stock stock = new Stock(1L, "D05", "DBS Group Holdings Ltd", "Equity", 1L, "SGX", "43.62", "SGD", "Y", "N");
-        Exchange exchange = new Exchange(1L, "SGX", "SG", ",SI");
+        Exchange exchange = new Exchange(1L, "SGX", "SG", ".SI");
         List<Dividend> dividends = List.of(dividend);
         when(dividendRepository.findByExchangeId(dividend.getExchangeId())).thenReturn(dividends);
         when(stockRepository.findById(dividend.getStockId())).thenReturn(Optional.of(stock));
@@ -304,9 +269,7 @@ class DividendServiceImplTest {
         List<Dividend> dividends = List.of(dividend);
         when(dividendRepository.findByExchangeId(dividend.getExchangeId())).thenReturn(dividends);
         when(stockRepository.findById(dividend.getStockId())).thenReturn(Optional.empty());
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.getDividendsByExchangeId(1L);
-        });
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> dividendService.getDividendsByExchangeId(1L));
         assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("No stock found with id: 1", exception.getError().getErrorMessages().getFirst());
     }
@@ -319,20 +282,16 @@ class DividendServiceImplTest {
         when(dividendRepository.findByExchangeId(dividend.getExchangeId())).thenReturn(dividends);
         when(stockRepository.findById(dividend.getStockId())).thenReturn(Optional.of(stock));
         when(exchangeRepository.findById(dividend.getExchangeId())).thenReturn(Optional.empty());
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.getDividendsByExchangeId(1L);
-        });
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> dividendService.getDividendsByExchangeId(1L));
         assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("No exchange found with id: 1", exception.getError().getErrorMessages().getFirst());
     }
 
     @Test
     void givenDividendsDoNotExist_whenGetDividendByExchangeId_thenThrowNotFoundException() {
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.getDividendsByExchangeId(1L);
-        });
-        assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
-        assertEquals("No dividend(s) found with exchange id: 1", exception.getError().getErrorMessages().getFirst());
+        when(dividendRepository.findByExchangeId(any())).thenReturn(List.of());
+        List<DividendDto> dividendDtos = dividendService.getDividendsByExchangeId(1L);
+        assertEquals(0, dividendDtos.size());
     }
 
     @Test
@@ -355,9 +314,7 @@ class DividendServiceImplTest {
         DividendDto dividendDto = new DividendDto("D05", "SGX", "2023-08-17", "2023-08-30", "0.0305");
         when(dividendRepository.findById(dividend.getDividendId())).thenReturn(Optional.of(dividend));
         when(exchangeRepository.findIdByExchange(dividendDto.getExchange())).thenReturn(Optional.empty());
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.updateDividendById(1L, dividendDto);
-        });
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> dividendService.updateDividendById(1L, dividendDto));
         assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("No exchange found with name: SGX", exception.getError().getErrorMessages().getFirst());
     }
@@ -370,9 +327,7 @@ class DividendServiceImplTest {
         when(dividendMapper.updateEntityWithDto(dividendDto, dividend)).thenReturn(dividend);
         when(exchangeRepository.findIdByExchange(dividendDto.getExchange())).thenReturn(Optional.of(1L));
         when(stockRepository.findIdByTickerAndExchangeId(dividendDto.getStockTicker().toUpperCase(), dividend.getExchangeId())).thenReturn(Optional.empty());
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.updateDividendById(1L, dividendDto);
-        });
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> dividendService.updateDividendById(1L, dividendDto));
         assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("Stock ticker D05 cannot be found in exchange: SGX", exception.getError().getErrorMessages().getFirst());
     }
@@ -380,9 +335,7 @@ class DividendServiceImplTest {
     @Test
     void givenDividendDoesNotExist_whenUpdateDividendById_thenThrowNotFoundException() {
         DividendDto dividendDto = new DividendDto("D05", "SGX", "2023-08-17", "2023-08-30", "0.0305");
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.updateDividendById(1L, dividendDto);
-        });
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> dividendService.updateDividendById(1L, dividendDto));
         assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("No dividend found with id: 1", exception.getError().getErrorMessages().getFirst());
     }
@@ -398,9 +351,7 @@ class DividendServiceImplTest {
 
     @Test
     void givenDividendsDoNotExist_whenDeleteAllDividends_thenThrowNotFoundException() {
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.deleteAllDividends();
-        });
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> dividendService.deleteAllDividends());
         assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("No dividend(s) found.", exception.getError().getErrorMessages().getFirst());
     }
@@ -415,9 +366,7 @@ class DividendServiceImplTest {
 
     @Test
     void givenDividendDoesNotExist_whenDeleteDividendById_thenThrowNotFoundException() {
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            dividendService.deleteDividendById(1L);
-        });
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> dividendService.deleteDividendById(1L));
         assertEquals(NOT_FOUND_ERROR_CODE, exception.getError().getErrorCode());
         assertEquals("No dividend found with id: 1", exception.getError().getErrorMessages().getFirst());
     }

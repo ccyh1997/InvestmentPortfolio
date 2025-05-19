@@ -5,7 +5,10 @@ import com.example.investmentportfolio.mapper.StatisticMapper;
 import com.example.investmentportfolio.model.*;
 import com.example.investmentportfolio.repository.*;
 import com.example.investmentportfolio.service.StatisticService;
-import com.example.investmentportfolio.util.*;
+import com.example.investmentportfolio.util.Constants;
+import com.example.investmentportfolio.util.CreateValidation;
+import com.example.investmentportfolio.util.CustomError;
+import com.example.investmentportfolio.util.NotFoundException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -51,43 +54,29 @@ public class StatisticServiceImpl implements StatisticService {
 
     @Override
     public StatisticDto createStatistic(StatisticDto statisticDto) {
-        Set<ConstraintViolation<StatisticDto>> violations = validator.validate(statisticDto, CreateValidation.class);
-        if (!violations.isEmpty()) {
-            List<String> errorMessages = violations.stream().map(ConstraintViolation::getMessage).toList();
-            LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
+        validateRequestDto(statisticDto);
+        Statistic statistic = statisticMapper.convertToEntity(statisticDto);
+        Optional<Long> optionalUserId = userRepository.findIdByUsername(statisticDto.getUsername().toUpperCase());
+        if (optionalUserId.isPresent()) {
+            statistic.setUserId(optionalUserId.get());
         } else {
-            Statistic statistic = statisticMapper.convertToEntity(statisticDto);
-            Optional<Long> optionalUserId = userRepository.findIdByUsername(statisticDto.getUsername().toUpperCase());
-            if (optionalUserId.isPresent()) {
-                statistic.setUserId(optionalUserId.get());
-            } else {
-                List<String> errorMessages = Collections.singletonList(String.format("No user found with username: %s", statisticDto.getUsername()));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
-            }
-            Optional<Long> optionalExchangeId = exchangeRepository.findIdByExchange(statisticDto.getExchange().toUpperCase());
-            if (optionalExchangeId.isEmpty()) {
-                List<String> errorMessages = Collections.singletonList(String.format("No exchange found with name: %s", statisticDto.getExchange()));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
-            }
-            Optional<Long> optionalStockId = stockRepository.findIdByTickerAndExchangeId(statisticDto.getStockTicker().toUpperCase(), optionalExchangeId.get());
-            if (optionalStockId.isPresent()) {
-                statistic.setStockId(optionalStockId.get());
-            } else {
-                List<String> errorMessages = Collections.singletonList(String.format("Stock ticker %s cannot be found in exchange: %s", statisticDto.getStockTicker(), statisticDto.getExchange()));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
-            }
-            if (statisticRepository.existsByUserIdAndStockId(statistic.getUserId(), statistic.getStockId())) {
-                List<String> errorMessages = Collections.singletonList("A statistic for this user with the same ticker and exchange already exists.");
-                LOGGER.error(errorMessages);
-                throw new AlreadyExistsException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
-            } else {
-                statisticRepository.save(statistic);
-                return statisticMapper.convertToDto(statistic);
-            }
+            throw returnNotFoundException(LOGGER, NO_USER_FOUND_WITH_USERNAME, statisticDto.getUsername());
+        }
+        Optional<Long> optionalExchangeId = exchangeRepository.findIdByExchange(statisticDto.getExchange().toUpperCase());
+        if (optionalExchangeId.isEmpty()) {
+            throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_NAME, statisticDto.getExchange());
+        }
+        Optional<Long> optionalStockId = stockRepository.findIdByTickerAndExchangeId(statisticDto.getStockTicker().toUpperCase(), optionalExchangeId.get());
+        if (optionalStockId.isPresent()) {
+            statistic.setStockId(optionalStockId.get());
+        } else {
+            throw returnNotFoundException(LOGGER, STOCK_TICKER_NOT_FOUND_IN_EXCHANGE, statisticDto.getStockTicker(), statisticDto.getExchange());
+        }
+        if (statisticRepository.existsByUserIdAndStockId(statistic.getUserId(), statistic.getStockId())) {
+            throw returnAlreadyExistsException(LOGGER, STATISTIC_FOR_USER_WITH_SAME_TICKER_AND_EXCHANGE_ALREADY_EXISTS);
+        } else {
+            statisticRepository.save(statistic);
+            return statisticMapper.convertToDto(statistic);
         }
     }
 
@@ -97,17 +86,27 @@ public class StatisticServiceImpl implements StatisticService {
         if (!statistics.isEmpty()) {
             return statistics.stream().map(statistic -> {
                 Optional<User> optionalUser = userRepository.findById(statistic.getUserId());
-                optionalUser.ifPresent(user -> statistic.setUsername(String.valueOf(user.getUsername())));
+                if (optionalUser.isPresent()) {
+                    statistic.setUsername(optionalUser.get().getUsername());
+                } else {
+                    throw returnNotFoundException(LOGGER, NO_USER_FOUND_WITH_ID, statistic.getUserId());
+                }
                 Optional<Stock> optionalStock = stockRepository.findById(statistic.getStockId());
-                optionalStock.ifPresent(stock -> statistic.setStockTicker(stock.getStockTicker()));
+                if (optionalStock.isPresent()) {
+                    statistic.setStockTicker(optionalStock.get().getStockTicker());
+                } else {
+                    throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_ID, statistic.getStockId());
+                }
                 Optional<String> optionalExchange = stockRepository.findExchangeByStockId(statistic.getStockId());
-                optionalExchange.ifPresent(statistic::setExchange);
+                if (optionalExchange.isPresent()) {
+                    statistic.setExchange(optionalExchange.get());
+                } else {
+                    throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_STOCK_ID, statistic.getStockId());
+                }
                 return statisticMapper.convertToDto(statistic);
             }).toList();
         } else {
-            List<String> errorMessages = Collections.singletonList("No statistic(s) found.");
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_STATISTICS_FOUND);
         }
     }
 
@@ -117,16 +116,26 @@ public class StatisticServiceImpl implements StatisticService {
         if (optionalStatistic.isPresent()) {
             Statistic statistic = optionalStatistic.get();
             Optional<User> optionalUser = userRepository.findById(statistic.getUserId());
-            optionalUser.ifPresent(user -> statistic.setUsername(String.valueOf(user.getUsername())));
+            if (optionalUser.isPresent()) {
+                statistic.setUsername(optionalUser.get().getUsername());
+            } else {
+                throw returnNotFoundException(LOGGER, NO_USER_FOUND_WITH_ID, statistic.getUserId());
+            }
             Optional<Stock> optionalStock = stockRepository.findById(statistic.getStockId());
-            optionalStock.ifPresent(stock -> statistic.setStockTicker(stock.getStockTicker()));
+            if (optionalStock.isPresent()) {
+                statistic.setStockTicker(optionalStock.get().getStockTicker());
+            } else {
+                throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_ID, statistic.getStockId());
+            }
             Optional<String> optionalExchange = stockRepository.findExchangeByStockId(statistic.getStockId());
-            optionalExchange.ifPresent(statistic::setExchange);
+            if (optionalExchange.isPresent()) {
+                statistic.setExchange(optionalExchange.get());
+            } else {
+                throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_STOCK_ID, statistic.getStockId());
+            }
             return statisticMapper.convertToDto(statistic);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_STATISTIC_FOUND_WITH_ID, statisticId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_STATISTIC_FOUND_WITH_ID, statisticId);
         }
     }
 
@@ -136,22 +145,33 @@ public class StatisticServiceImpl implements StatisticService {
         if (!statistics.isEmpty()) {
             return statistics.stream().map(statistic -> {
                 Optional<User> optionalUser = userRepository.findById(statistic.getUserId());
-                optionalUser.ifPresent(user -> statistic.setUsername(String.valueOf(user.getUsername())));
+                if (optionalUser.isPresent()) {
+                    statistic.setUsername(optionalUser.get().getUsername());
+                } else {
+                    throw returnNotFoundException(LOGGER, NO_USER_FOUND_WITH_ID, statistic.getUserId());
+                }
                 Optional<Stock> optionalStock = stockRepository.findById(statistic.getStockId());
-                optionalStock.ifPresent(stock -> statistic.setStockTicker(stock.getStockTicker()));
+                if (optionalStock.isPresent()) {
+                    statistic.setStockTicker(optionalStock.get().getStockTicker());
+                } else {
+                    throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_ID, statistic.getStockId());
+                }
                 Optional<String> optionalExchange = stockRepository.findExchangeByStockId(statistic.getStockId());
-                optionalExchange.ifPresent(statistic::setExchange);
+                if (optionalExchange.isPresent()) {
+                    statistic.setExchange(optionalExchange.get());
+                } else {
+                    throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_STOCK_ID, statistic.getStockId());
+                }
                 return statisticMapper.convertToDto(statistic);
             }).toList();
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format("No statistics found for user id: %d", userId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_STATISTICS_FOUND_FOR_USER_WITH_ID, userId);
         }
     }
 
     @Override
     public StatisticDto updateStatisticById(Long statisticId, StatisticDto statisticDto) {
+        validateRequestDto(statisticDto);
         Optional<Statistic> optionalStatistic = statisticRepository.findById(statisticId);
         if (optionalStatistic.isPresent()) {
             Statistic updatedStatistic = statisticMapper.updateEntityWithDto(statisticDto, optionalStatistic.get());
@@ -159,30 +179,22 @@ public class StatisticServiceImpl implements StatisticService {
             if (optionalUserId.isPresent()) {
                 updatedStatistic.setUserId(optionalUserId.get());
             } else {
-                List<String> errorMessages = Collections.singletonList(String.format("No user found with username: %s", statisticDto.getUsername()));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw returnNotFoundException(LOGGER, NO_USER_FOUND_WITH_USERNAME, statisticDto.getUsername());
             }
             Optional<Long> optionalExchangeId = exchangeRepository.findIdByExchange(statisticDto.getExchange().toUpperCase());
             if (optionalExchangeId.isEmpty()) {
-                List<String> errorMessages = Collections.singletonList(String.format("No exchange found with name: %s", statisticDto.getExchange()));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_NAME, statisticDto.getExchange());
             }
             Optional<Long> optionalStockId = stockRepository.findIdByTickerAndExchangeId(statisticDto.getStockTicker().toUpperCase(), optionalExchangeId.get());
             if (optionalStockId.isPresent()) {
                 updatedStatistic.setStockId(optionalStockId.get());
             } else {
-                List<String> errorMessages = Collections.singletonList(String.format("Stock ticker %s cannot be found in exchange: %s", statisticDto.getStockTicker(), statisticDto.getExchange()));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw returnNotFoundException(LOGGER, STOCK_TICKER_NOT_FOUND_IN_EXCHANGE, statisticDto.getStockTicker(), statisticDto.getExchange());
             }
             statisticRepository.save(updatedStatistic);
             return statisticMapper.convertToDto(updatedStatistic);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_STATISTIC_FOUND_WITH_ID, statisticId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_STATISTIC_FOUND_WITH_ID, statisticId);
         }
     }
 
@@ -193,9 +205,7 @@ public class StatisticServiceImpl implements StatisticService {
         if (!statistics.isEmpty()) {
             statisticRepository.deleteAll();
         } else {
-            List<String> errorMessages = Collections.singletonList("No statistic(s) found.");
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_STATISTICS_FOUND);
         }
     }
 
@@ -206,9 +216,7 @@ public class StatisticServiceImpl implements StatisticService {
         if (optionalStatistic.isPresent()) {
             statisticRepository.deleteById(statisticId);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_STATISTIC_FOUND_WITH_ID, statisticId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_STATISTIC_FOUND_WITH_ID, statisticId);
         }
     }
 
@@ -219,9 +227,7 @@ public class StatisticServiceImpl implements StatisticService {
         if (!statistics.isEmpty()) {
             statisticRepository.deleteByUserId(userId);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format("No statistics found for user id: %d", userId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_STATISTICS_FOUND_FOR_USER_WITH_ID, userId);
         }
     }
 
@@ -231,9 +237,9 @@ public class StatisticServiceImpl implements StatisticService {
         String stockTicker = stockRepository.findStockTickerByStockId(stockId);
         BigDecimal totalUnits = transactions.stream().map(transaction -> {
             BigDecimal units = new BigDecimal(transaction.getUnits());
-            return "Buy".equalsIgnoreCase(transaction.getTransactionType().trim()) ? units : units.negate();
+            return BUY.equalsIgnoreCase(transaction.getTransactionType().trim()) ? units : units.negate();
         }).reduce(BigDecimal.ZERO, BigDecimal::add);
-        LOGGER.info("Total Units for {}: {}", stockTicker, totalUnits);
+        LOGGER.info(TOTAL_UNITS_LOG, stockTicker, totalUnits);
         return totalUnits;
     }
 
@@ -245,20 +251,10 @@ public class StatisticServiceImpl implements StatisticService {
         LOGGER.info(Constants.ASTERISK);
         List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
         if (stockIds.isEmpty()) {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
-            LOGGER.info(errorMessages);
-            return;
+            throw returnNotFoundException(LOGGER, NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId);
         }
         stockIds.forEach(stockId -> processStockUnits(userId, stockId));
-        LOGGER.info("Total units calculation completed for userId: {}", userId);
-    }
-
-    private String getUserDisplayCurrency(Long userId) {
-        return userRepository.findById(userId).map(User::getDisplayCurrency).orElseThrow(() -> {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
-            LOGGER.error(errorMessages);
-            return new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
-        });
+        LOGGER.info(TOTAL_UNITS_FOR_USER_LOG, userId);
     }
 
     private void processStockUnits(Long userId, Long stockId) {
@@ -283,21 +279,25 @@ public class StatisticServiceImpl implements StatisticService {
         String displayCurrency = getUserDisplayCurrency(userId);
         Optional<Stock> stock = stockRepository.findById(stockId);
         if (stock.isEmpty()) {
-            List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_ID, stockId);
         }
-        LOGGER.info("Stock Ticker: {}", stock.get().getStockTicker());
+        LOGGER.info(STOCK_TICKER_LOG, stock.get().getStockTicker());
         List<Transaction> transactions = transactionRepository.getBuyTransactionsByStock(userId, stockId);
         if (transactions.isEmpty()) {
-            List<String> errorMessages = Collections.singletonList(String.format("No buy transactions found with ticker %s for user id: %d", stock.get().getStockTicker(), userId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_BUY_TRANSACTION_FOUND_FOR_USER_WITH_ID, stock.get().getStockTicker(), userId);
         }
         BigDecimal totalCost = transactions.stream().map(transaction -> calculateTransactionCost(transaction, displayCurrency)).reduce(BigDecimal.ZERO, BigDecimal::add);
-        LOGGER.info("Cost: {} ${}", displayCurrency, totalCost.stripTrailingZeros());
-        LOGGER.info("");
+        LOGGER.info(COST_LOG, displayCurrency, totalCost.stripTrailingZeros());
+        LOGGER.info(EMPTY_STRING);
         return totalCost;
+    }
+
+    private String getUserDisplayCurrency(Long userId) {
+        return userRepository.findById(userId).map(User::getDisplayCurrency).orElseThrow(() -> {
+            List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
+            LOGGER.error(errorMessages);
+            return new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+        });
     }
 
     private BigDecimal calculateTransactionCost(Transaction transaction, String displayCurrency) {
@@ -313,9 +313,9 @@ public class StatisticServiceImpl implements StatisticService {
         if (currency.equals(displayCurrency)) {
             return BigDecimal.ONE;
         }
-        String rateName = currency + "/" + displayCurrency;
+        String rateName = currency + SLASH + displayCurrency;
         return rateRepository.findByRateNameIgnoreCase(rateName).map(rate -> new BigDecimal(rate.getRate())).orElseThrow(() -> {
-            List<String> errorMessages = Collections.singletonList(String.format(INVALID_RATE, rateName));
+            List<String> errorMessages = Collections.singletonList(String.format(NO_RATE_FOUND_WITH_NAME, rateName));
             LOGGER.error(errorMessages);
             return new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         });
@@ -330,16 +330,16 @@ public class StatisticServiceImpl implements StatisticService {
         String displayCurrency = getUserDisplayCurrency(userId);
         List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
         if (stockIds.isEmpty()) {
-            LOGGER.info(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
-            return;
+            throw returnNotFoundException(LOGGER, NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId);
+        } else {
+            List<Optional<Stock>> optionalStocks = stockRepository.findByStockIds(stockIds);
+            if (optionalStocks.isEmpty()) {
+                throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_WITH_STOCK_IDS);
+            }
+            processStocksTotalCost(userId, optionalStocks);
+            BigDecimal totalCost = calculateTotalCost(userId, stockIds);
+            LOGGER.info(TOTAL_COST_LOG, displayCurrency, totalCost.stripTrailingZeros());
         }
-        List<Optional<Stock>> optionalStocks = stockRepository.findByStockIds(stockIds);
-        if (optionalStocks.isEmpty()) {
-            return; // No stocks to process
-        }
-        processStocksTotalCost(userId, optionalStocks);
-        BigDecimal totalCost = calculateTotalCost(userId, stockIds);
-        LOGGER.info("Total Cost: {} ${}", displayCurrency, totalCost.stripTrailingZeros());
     }
 
     private void processStocksTotalCost(Long userId, List<Optional<Stock>> optionalStocks) {
@@ -350,9 +350,7 @@ public class StatisticServiceImpl implements StatisticService {
                 BigDecimal totalStockCost = calculateTotalCostByStock(userId, stockId);
                 saveOrUpdateTotalCost(userId, stockId, totalStockCost);
             } else {
-                List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw returnNotFoundException(LOGGER, INVALID_STOCK);
             }
         }
     }
@@ -380,14 +378,14 @@ public class StatisticServiceImpl implements StatisticService {
         BigDecimal lastPrice = stockRepository.findLastPriceByStockId(stockId);
         BigDecimal totalValue = stockUnits.multiply(lastPrice);
         String baseCurrency = stock.getBaseCurrency();
-        LOGGER.info("Value: {} ${}", baseCurrency, totalValue.stripTrailingZeros());
-        LOGGER.info("");
+        LOGGER.info(VALUE_LOG, baseCurrency, totalValue.stripTrailingZeros());
+        LOGGER.info(EMPTY_STRING);
         return totalValue;
     }
 
     private Stock getStockById(Long stockId) {
         return stockRepository.findById(stockId).orElseThrow(() -> {
-            List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
+            List<String> errorMessages = Collections.singletonList(String.format(NO_STOCK_FOUND_WITH_ID, stockId));
             LOGGER.error(errorMessages);
             return new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         });
@@ -402,16 +400,15 @@ public class StatisticServiceImpl implements StatisticService {
         String displayCurrency = getUserDisplayCurrency(userId);
         List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
         if (stockIds.isEmpty()) {
-            LOGGER.info(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
-            return;
+            throw returnNotFoundException(LOGGER, NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId);
         }
         List<Optional<Stock>> optionalStocks = stockRepository.findByStockIds(stockIds);
         if (optionalStocks.isEmpty()) {
-            return;
+            throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_WITH_STOCK_IDS);
         }
         processStocksValue(userId, displayCurrency, optionalStocks);
         BigDecimal totalValue = calculateTotalValue(userId, stockIds);
-        LOGGER.info("Total Value: {} ${}", displayCurrency, totalValue.stripTrailingZeros());
+        LOGGER.info(TOTAL_VALUE_LOG, displayCurrency, totalValue.stripTrailingZeros());
     }
 
     private void processStocksValue(Long userId, String displayCurrency, List<Optional<Stock>> optionalStocks) {
@@ -422,9 +419,7 @@ public class StatisticServiceImpl implements StatisticService {
                 BigDecimal totalStockValue = calculateTotalValueByStock(userId, stockId);
                 updateOrSaveStockValue(userId, stockId, totalStockValue, displayCurrency);
             } else {
-                List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw returnNotFoundException(LOGGER, INVALID_STOCK);
             }
         }
     }
@@ -445,14 +440,12 @@ public class StatisticServiceImpl implements StatisticService {
 
     private BigDecimal calculateExchangeRate(String displayCurrency, String baseCurrency) {
         if (!baseCurrency.equals(displayCurrency)) {
-            String rateName = baseCurrency + "/" + displayCurrency;
+            String rateName = baseCurrency + SLASH + displayCurrency;
             Optional<Rate> optionalRate = rateRepository.findByRateNameIgnoreCase(rateName);
             if (optionalRate.isPresent()) {
                 return new BigDecimal(optionalRate.get().getRate());
             } else {
-                List<String> errorMessages = Collections.singletonList(String.format(INVALID_RATE, rateName));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw returnNotFoundException(LOGGER, NO_RATE_FOUND_WITH_NAME, rateName);
             }
         }
         return BigDecimal.ONE;
@@ -467,15 +460,12 @@ public class StatisticServiceImpl implements StatisticService {
         Optional<Stock> stock = stockRepository.findById(stockId);
         String displayCurrency = getUserDisplayCurrency(userId);
         if (stock.isEmpty()) {
-            handleInvalidStock();
-        } else {
-            Stock foundStock = stock.get();
-            LOGGER.info(String.format(STOCK_TICKER, foundStock.getStockTicker()));
+            throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_ID, stockId);
         }
         List<Transaction> sellTransactions = transactionRepository.getSellTransactionsByStock(userId, stockId);
         if (sellTransactions.isEmpty()) {
-            LOGGER.info("Realized Profits: {} ${}", displayCurrency, BigDecimal.ZERO);
-            LOGGER.info("");
+            LOGGER.info(REALIZED_PROFITS_LOG, displayCurrency, BigDecimal.ZERO);
+            LOGGER.info(EMPTY_STRING);
             return BigDecimal.ZERO;
         } else {
             return calculateTotalRealizedProfits(userId, stockId, displayCurrency, sellTransactions);
@@ -491,30 +481,26 @@ public class StatisticServiceImpl implements StatisticService {
             BigDecimal sellingFees = new BigDecimal(sellTransaction.getFees()).multiply(rate);
             List<Transaction> buyTransactions = transactionRepository.getBuyTransactionsByUserIdAndStockIdAndDate(userId, stockId, sellTransaction.getTransactionDate());
             if (buyTransactions.isEmpty()) {
-                List<String> errorMessages = Collections.singletonList("There should be a buy transaction before a sell transaction.");
-                LOGGER.error(errorMessages);
-                throw new GeneralException(new CustomError(Constants.INTERNAL_SERVER_ERROR_ERROR_CODE, errorMessages));
+                throw returnGeneralException(LOGGER, NO_BUY_TRANSACTION_BEFORE_SELL_TRANSACTION);
             } else {
                 BigDecimal realizedProfits = calculateRealizedProfitsForSellTransaction(buyTransactions, unitsSold, unitSellingPrice, sellingFees);
                 totalStockRealizedProfits = totalStockRealizedProfits.add(realizedProfits);
             }
         }
-        LOGGER.info("Realized Profits: {} ${}", displayCurrency, totalStockRealizedProfits.stripTrailingZeros());
-        LOGGER.info("");
+        LOGGER.info(REALIZED_PROFITS_LOG, displayCurrency, totalStockRealizedProfits.stripTrailingZeros());
+        LOGGER.info(EMPTY_STRING);
         return totalStockRealizedProfits;
     }
 
     private BigDecimal getRateForTransaction(Transaction transaction, String displayCurrency) {
         String transactionCurrency = transaction.getCurrency();
         if (!transactionCurrency.equals(displayCurrency)) {
-            String rateName = transactionCurrency + "/" + displayCurrency;
+            String rateName = transactionCurrency + SLASH + displayCurrency;
             Optional<Rate> optionalRate = rateRepository.findByRateNameIgnoreCase(rateName);
             if (optionalRate.isPresent()) {
                 return new BigDecimal(optionalRate.get().getRate());
             } else {
-                List<String> errorMessages = Collections.singletonList(String.format(INVALID_RATE, rateName));
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw returnNotFoundException(LOGGER, NO_RATE_FOUND_WITH_NAME, rateName);
             }
         }
         return BigDecimal.ONE;
@@ -544,16 +530,15 @@ public class StatisticServiceImpl implements StatisticService {
         String displayCurrency = getUserDisplayCurrency(userId);
         List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
         if (stockIds.isEmpty()) {
-            LOGGER.info(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
-            return;
+            throw returnNotFoundException(LOGGER, NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId);
         }
         List<Optional<Stock>> optionalStocks = stockRepository.findByStockIds(stockIds);
         if (optionalStocks.isEmpty()) {
-            return;
+            throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_WITH_STOCK_IDS);
         }
         processStocksRealizedProfits(userId, optionalStocks);
         BigDecimal totalRealizedProfits = calculateTotalRealizedProfits(userId, stockIds);
-        LOGGER.info("Total Realized Profits: {} ${}", displayCurrency, totalRealizedProfits.stripTrailingZeros());
+        LOGGER.info(TOTAL_REALIZED_PROFITS_LOG, displayCurrency, totalRealizedProfits.stripTrailingZeros());
     }
 
     private void processStocksRealizedProfits(Long userId, List<Optional<Stock>> optionalStocks) {
@@ -564,9 +549,7 @@ public class StatisticServiceImpl implements StatisticService {
                 BigDecimal realizedProfits = calculateRealizedProfitsByStock(userId, stockId);
                 saveOrUpdateRealizedProfits(userId, stockId, realizedProfits);
             } else {
-                List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
-                LOGGER.error(errorMessages);
-                throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+                throw returnNotFoundException(LOGGER, INVALID_STOCK);
             }
         }
     }
@@ -599,8 +582,8 @@ public class StatisticServiceImpl implements StatisticService {
         BigDecimal units = statisticRepository.getStockUnits(userId, stockId);
         BigDecimal averageBuyingPrice = calculateAverageBuyingPrice(stockCost, units);
         BigDecimal unrealizedProfits = (lastPrice.subtract(averageBuyingPrice)).multiply(units);
-        LOGGER.info("Unrealized Profits: {} ${}", displayCurrency, unrealizedProfits.stripTrailingZeros());
-        LOGGER.info("");
+        LOGGER.info(UNREALIZED_PROFITS_LOG, displayCurrency, unrealizedProfits.stripTrailingZeros());
+        LOGGER.info(EMPTY_STRING);
         return unrealizedProfits;
     }
 
@@ -618,12 +601,11 @@ public class StatisticServiceImpl implements StatisticService {
         String displayCurrency = user.getDisplayCurrency();
         List<Long> stockIds = stockRepository.findAllStockIdsByUserId(userId);
         if (stockIds.isEmpty()) {
-            LOGGER.info(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
-            return;
+            throw returnNotFoundException(LOGGER, NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId);
         }
         processUnrealizedProfitsForStocks(userId, stockIds);
         BigDecimal totalUnrealizedProfits = calculateTotalUnrealizedProfits(userId, stockIds);
-        LOGGER.info("Total Unrealized Profits: {} ${}", displayCurrency, totalUnrealizedProfits.stripTrailingZeros());
+        LOGGER.info(TOTAL_UNREALIZED_PROFITS_LOG, displayCurrency, totalUnrealizedProfits.stripTrailingZeros());
     }
 
     private User getUserById(Long userId) {
@@ -671,8 +653,8 @@ public class StatisticServiceImpl implements StatisticService {
         String baseCurrency = stock.getBaseCurrency();
         List<Dividend> dividends = dividendRepository.getRelevantDividends(stockId, earliestDate);
         BigDecimal totalDividendsEarned = calculateDividendsForStock(userId, stockId, dividends, baseCurrency);
-        LOGGER.info(String.format("Total Dividends Earned: %s $%.2f", baseCurrency, totalDividendsEarned.stripTrailingZeros()));
-        LOGGER.info("");
+        LOGGER.info(String.format(TOTAL_DIVIDENDS_EARNED_2F_LOG, baseCurrency, totalDividendsEarned.stripTrailingZeros()));
+        LOGGER.info(EMPTY_STRING);
         return totalDividendsEarned;
     }
 
@@ -684,7 +666,7 @@ public class StatisticServiceImpl implements StatisticService {
         String exDate = dividend.getExDate();
         BigDecimal totalUnits = calculateTotalUnitsOwnedOnGivenDate(userId, stockId, exDate);
         BigDecimal dividendsEarnedExDate = totalUnits.multiply(new BigDecimal(dividend.getPayout()));
-        LOGGER.info(String.format("Dividends Earned on ex Date %s: %s $%s", exDate, baseCurrency, dividendsEarnedExDate.stripTrailingZeros()));
+        LOGGER.info(String.format(DIVIDENDS_EARNED_ON_EX_DATE_LOG, exDate, baseCurrency, dividendsEarnedExDate.stripTrailingZeros()));
         return dividendsEarnedExDate;
     }
 
@@ -707,10 +689,10 @@ public class StatisticServiceImpl implements StatisticService {
                 updateOrSaveStatisticWithDividends(userId, stockId, convertedDividends);
             }
         } else {
-            LOGGER.info(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
+            throw returnNotFoundException(LOGGER, NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId);
         }
         BigDecimal totalDividends = stockIds.stream().map(stockId -> statisticRepository.getDividends(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
-        LOGGER.info("Total Dividends Earned: {} ${}", displayCurrency, totalDividends.stripTrailingZeros());
+        LOGGER.info(TOTAL_DIVIDENDS_EARNED_LOG, displayCurrency, totalDividends.stripTrailingZeros());
     }
 
     private List<Long> getStockIdsByUserId(Long userId) {
@@ -741,14 +723,14 @@ public class StatisticServiceImpl implements StatisticService {
         LOGGER.info(String.format(STOCK_TICKER, stock.getStockTicker()));
         Statistic statistic = getStatisticByUserIdAndStockId(userId, stockId);
         BigDecimal totalProfits = calculateProfitsFromStatistic(statistic);
-        LOGGER.info("Total Profits: {} ${}", displayCurrency, totalProfits.stripTrailingZeros());
-        LOGGER.info("");
+        LOGGER.info(TOTAL_PROFITS_LOG, displayCurrency, totalProfits.stripTrailingZeros());
+        LOGGER.info(EMPTY_STRING);
         return totalProfits;
     }
 
     private Statistic getStatisticByUserIdAndStockId(Long userId, Long stockId) {
         return statisticRepository.findByUserIdAndStockId(userId, stockId).orElseThrow(() -> {
-            List<String> errorMessages = Collections.singletonList(String.format("Error retrieving statistic for stock ID %d and user ID %d", stockId, userId));
+            List<String> errorMessages = Collections.singletonList(String.format(ERROR_RETRIEVING_STATISTICS_FOR_STOCK_WITH_ID_AND_USER_WITH_ID, stockId, userId));
             LOGGER.error(errorMessages);
             return new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
         });
@@ -771,7 +753,7 @@ public class StatisticServiceImpl implements StatisticService {
         if (optionalUser.isPresent()) {
             handleUserFound(optionalUser.get(), userId);
         } else {
-            handleUserNotFound(userId);
+            throw returnNotFoundException(LOGGER, NO_USER_FOUND_WITH_ID, userId);
         }
     }
 
@@ -781,14 +763,8 @@ public class StatisticServiceImpl implements StatisticService {
         if (!stockIds.isEmpty()) {
             processStocks(userId, stockIds, displayCurrency);
         } else {
-            handleNoStocksFound(userId);
+            throw returnNotFoundException(LOGGER, NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId);
         }
-    }
-
-    private void handleUserNotFound(Long userId) {
-        List<String> errorMessages = Collections.singletonList(String.format(NO_USER_FOUND_WITH_ID, userId));
-        LOGGER.error(errorMessages);
-        throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
     }
 
     private void processStocks(Long userId, List<Long> stockIds, String displayCurrency) {
@@ -796,12 +772,9 @@ public class StatisticServiceImpl implements StatisticService {
         if (!optionalStocks.isEmpty()) {
             processOptionalStocks(userId, optionalStocks);
             calculateAndLogOverallProfits(userId, stockIds, displayCurrency);
+        } else {
+            throw returnNotFoundException(LOGGER, NO_STOCK_FOUND_WITH_WITH_STOCK_IDS);
         }
-    }
-
-    private void handleNoStocksFound(Long userId) {
-        List<String> errorMessages = Collections.singletonList(String.format(NO_STOCKS_FOUND_FOR_USER_WITH_ID, userId));
-        LOGGER.info(errorMessages);
     }
 
     private void processOptionalStocks(Long userId, List<Optional<Stock>> optionalStocks) {
@@ -821,21 +794,19 @@ public class StatisticServiceImpl implements StatisticService {
     }
 
     private void handleInvalidStock() {
-        List<String> errorMessages = Collections.singletonList(INVALID_STOCK);
-        LOGGER.error(errorMessages);
-        throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+        throw returnNotFoundException(LOGGER, INVALID_STOCK);
     }
 
     private void calculateAndLogOverallProfits(Long userId, List<Long> stockIds, String displayCurrency) {
         BigDecimal overallProfits = stockIds.stream().map(stockId -> statisticRepository.getTotalProfits(userId, stockId)).reduce(BigDecimal.ZERO, BigDecimal::add);
-        LOGGER.info("Total Profits: {} ${}", displayCurrency, overallProfits.stripTrailingZeros());
+        LOGGER.info(TOTAL_PROFITS_LOG, displayCurrency, overallProfits.stripTrailingZeros());
     }
 
     @Transactional
     @Override
     public void updateStatisticsForUser(Long userId) {
         LOGGER.info(Constants.ASTERISK);
-        LOGGER.info(String.format("Statistics for user id: %d", userId));
+        LOGGER.info(String.format(STATISTICS_FOR_USER_WITH_ID, userId));
         calculateTotalUnits(userId);
         calculateTotalCost(userId);
         calculateTotalValue(userId);
@@ -866,6 +837,13 @@ public class StatisticServiceImpl implements StatisticService {
         List<Long> userIds = userRepository.findAllUserIds();
         for (Long userId : userIds) {
             updateTotalProfitsForUser(userId);
+        }
+    }
+
+    private void validateRequestDto(StatisticDto statisticDto) {
+        Set<ConstraintViolation<StatisticDto>> violations = validator.validate(statisticDto, CreateValidation.class);
+        if (!violations.isEmpty()) {
+            throw returnValidationException(LOGGER, violations);
         }
     }
 }

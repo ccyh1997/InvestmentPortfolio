@@ -13,15 +13,6 @@ import static com.example.investmentportfolio.util.Constants.FORBIDDEN_ERROR_MES
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
-    @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<CustomError> handleNotFoundException(NotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getError());
-    }
-
-    @ExceptionHandler(AlreadyExistsException.class)
-    public ResponseEntity<CustomError> handleAlreadyExistsException(AlreadyExistsException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getError());
-    }
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<CustomError> handleValidationException(ValidationException ex) {

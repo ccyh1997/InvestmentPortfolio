@@ -5,7 +5,7 @@ import com.example.investmentportfolio.mapper.ExchangeMapper;
 import com.example.investmentportfolio.model.Exchange;
 import com.example.investmentportfolio.repository.ExchangeRepository;
 import com.example.investmentportfolio.service.ExchangeService;
-import com.example.investmentportfolio.util.*;
+import com.example.investmentportfolio.util.CreateValidation;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -14,13 +14,11 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import static com.example.investmentportfolio.util.Constants.NO_EXCHANGE_FOUND_WITH_ID;
-import static com.example.investmentportfolio.util.Constants.NO_EXCHANGE_FOUND_WITH_SUFFIX;
+import static com.example.investmentportfolio.util.Constants.*;
 
 @Service
 public class ExchangeServiceImpl implements ExchangeService {
@@ -37,21 +35,13 @@ public class ExchangeServiceImpl implements ExchangeService {
 
     @Override
     public ExchangeDto createExchange(ExchangeDto exchangeDto) {
-        Set<ConstraintViolation<ExchangeDto>> violations = validator.validate(exchangeDto, CreateValidation.class);
-        if (!violations.isEmpty()) {
-            List<String> errorMessages = violations.stream().map(ConstraintViolation::getMessage).toList();
-            LOGGER.error(errorMessages);
-            throw new ValidationException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
+        validateRequestDto(exchangeDto);
+        Exchange exchange = exchangeMapper.convertToEntity(exchangeDto);
+        if (exchangeRepository.existsByExchangeOrSuffixIgnoreCase(exchange.getExchange(), exchange.getSuffix())) {
+            throw returnAlreadyExistsException(LOGGER, EXCHANGE_SAME_NAME_OR_SUFFIX);
         } else {
-            Exchange exchange = exchangeMapper.convertToEntity(exchangeDto);
-            if (exchangeRepository.existsByExchangeOrSuffixIgnoreCase(exchange.getExchange(), exchange.getSuffix())) {
-                List<String> errorMessages = Collections.singletonList("An exchange with the same name or suffix already exists.");
-                LOGGER.error(errorMessages);
-                throw new AlreadyExistsException(new CustomError(Constants.BAD_REQUEST_ERROR_CODE, errorMessages));
-            } else {
-                exchangeRepository.save(exchange);
-                return exchangeMapper.convertToDto(exchange);
-            }
+            exchangeRepository.save(exchange);
+            return exchangeMapper.convertToDto(exchange);
         }
     }
 
@@ -61,9 +51,7 @@ public class ExchangeServiceImpl implements ExchangeService {
         if (!exchanges.isEmpty()) {
             return exchanges.stream().map(exchangeMapper::convertToDto).toList();
         } else {
-            List<String> errorMessages = Collections.singletonList("No exchange(s) found.");
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_EXCHANGES_FOUND);
         }
     }
 
@@ -73,9 +61,7 @@ public class ExchangeServiceImpl implements ExchangeService {
         if (optionalExchange.isPresent()) {
             return exchangeMapper.convertToDto(optionalExchange.get());
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_ID, exchangeId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_ID, exchangeId);
         }
     }
 
@@ -85,9 +71,7 @@ public class ExchangeServiceImpl implements ExchangeService {
         if (!exchanges.isEmpty()) {
             return exchanges.stream().map(exchangeMapper::convertToDto).toList();
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format("No exchange(s) found with country code: %s", countryCode));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_EXCHANGES_FOUND_WITH_COUNTRY_CODE, countryCode);
         }
     }
 
@@ -97,37 +81,37 @@ public class ExchangeServiceImpl implements ExchangeService {
         if (optionalExchange.isPresent()) {
             return exchangeMapper.convertToDto(optionalExchange.get());
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_SUFFIX, suffix));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_SUFFIX, suffix);
         }
     }
 
     @Override
     public ExchangeDto updateExchangeById(Long exchangeId, ExchangeDto exchangeDto) {
-        Optional<Exchange> optionalExchange = exchangeRepository.findById(exchangeId);
-        if (optionalExchange.isPresent()) {
-            Exchange updatedExchange = exchangeMapper.updateEntityWithDto(exchangeDto, optionalExchange.get());
-            exchangeRepository.save(updatedExchange);
-            return exchangeMapper.convertToDto(updatedExchange);
+        Set<ConstraintViolation<ExchangeDto>> violations = validator.validate(exchangeDto, CreateValidation.class);
+        if (!violations.isEmpty()) {
+            throw returnValidationException(LOGGER, violations);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_ID, exchangeId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            Optional<Exchange> optionalExchange = exchangeRepository.findById(exchangeId);
+            if (optionalExchange.isPresent()) {
+                Exchange updatedExchange = exchangeMapper.updateEntityWithDto(exchangeDto, optionalExchange.get());
+                exchangeRepository.save(updatedExchange);
+                return exchangeMapper.convertToDto(updatedExchange);
+            } else {
+                throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_ID, exchangeId);
+            }
         }
     }
 
     @Override
     public ExchangeDto updateExchangeBySuffix(String suffix, ExchangeDto exchangeDto) {
+        validateRequestDto(exchangeDto);
         Optional<Exchange> optionalExchange = exchangeRepository.findBySuffixIgnoreCase(suffix);
         if (optionalExchange.isPresent()) {
             Exchange updatedExchange = exchangeMapper.updateEntityWithDto(exchangeDto, optionalExchange.get());
             exchangeRepository.save(updatedExchange);
             return exchangeMapper.convertToDto(updatedExchange);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_SUFFIX, suffix));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_SUFFIX, suffix);
         }
     }
 
@@ -138,9 +122,7 @@ public class ExchangeServiceImpl implements ExchangeService {
         if (!exchanges.isEmpty()) {
             exchangeRepository.deleteAll();
         } else {
-            List<String> errorMessages = Collections.singletonList("No exchange(s) found.");
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_EXCHANGES_FOUND);
         }
     }
 
@@ -151,9 +133,7 @@ public class ExchangeServiceImpl implements ExchangeService {
         if (optionalExchange.isPresent()) {
             exchangeRepository.deleteById(exchangeId);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_ID, exchangeId));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_ID, exchangeId);
         }
     }
 
@@ -164,9 +144,14 @@ public class ExchangeServiceImpl implements ExchangeService {
         if (optionalExchange.isPresent()) {
             exchangeRepository.deleteBySuffixIgnoreCase(suffix);
         } else {
-            List<String> errorMessages = Collections.singletonList(String.format(NO_EXCHANGE_FOUND_WITH_SUFFIX, suffix));
-            LOGGER.error(errorMessages);
-            throw new NotFoundException(new CustomError(Constants.NOT_FOUND_ERROR_CODE, errorMessages));
+            throw returnNotFoundException(LOGGER, NO_EXCHANGE_FOUND_WITH_SUFFIX, suffix);
+        }
+    }
+
+    private void validateRequestDto(ExchangeDto exchangeDto) {
+        Set<ConstraintViolation<ExchangeDto>> violations = validator.validate(exchangeDto, CreateValidation.class);
+        if (!violations.isEmpty()) {
+            throw returnValidationException(LOGGER, violations);
         }
     }
 }
